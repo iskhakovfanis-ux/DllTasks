@@ -1,0 +1,343 @@
+unit Interfaces.DllReader;
+
+interface
+
+uses
+  System.Generics.Collections;
+
+type
+  /// <summary>
+  ///   Тип параметра
+  /// </summary>
+  TParamType = (
+    // Неизвестный параметр
+    ptUnknown             = 0,
+    // Целочисленный тип
+    ptInteger             = 1,
+    // Строка
+    ptAnsiString          = 2,
+    // Список строк (разделенные символом #0, и в конце 2 символа #0#0)
+    ptAnsiStringList      = 3,
+    // Целочисленный тип (1 байт)
+    ptByte                = 4
+  );
+
+  /// <summary>
+  ///   Состояние выполнения задачи
+  /// </summary>
+  TDLLTaskState = (
+    // Задача еще не запущена
+    tsNone,
+    // Задача выполняется
+    tsWorking,
+    // Задача завершена
+    tsFinished,
+    // Задача прервана пользователем
+    tsInterrupted,
+    // Ошибка при выполнении задачи
+    tsError
+  );
+
+  /// <summary>
+  ///   Информация о параметре метода
+  /// </summary>
+  TParamInfo = record
+    // Название параметра
+    ParamName: string;
+    // Тип параметра
+    ParamType: TParamType;
+    // Описание параметра
+    Description: string;
+  end;
+
+  /// <summary>
+  ///   Интерфейс метода с параметрами из DLL
+  /// </summary>
+  IDLLMethod = interface(IInterface)
+  ['{13F1F1B2-21E5-403B-A3E3-CF4DAB637835}']
+    function GetDescription(): string; stdcall;
+    function GetDLLName(): string; stdcall;
+    function GetMethodName(): string; stdcall;
+    function GetParams(): TArray<TParamInfo>; stdcall;
+
+    /// <summary>
+    ///   Описание метода
+    /// </summary>
+    property Description: string
+             read GetDescription;
+    /// <summary>
+    ///   Полное название библиотеки
+    /// </summary>
+    property DLLName: string
+             read GetDLLName;
+    /// <summary>
+    ///   Название метода
+    /// </summary>
+    property MethodName: string
+             read GetMethodName;
+    /// <summary>
+    ///   Список параметров
+    /// </summary>
+    property Params: TArray<TParamInfo>
+             read GetParams;
+
+  end;
+
+  IDLLInfo = interface(IInterface)
+    function GetDllName(): string; stdcall;
+    function GetMethodCount(): Integer; stdcall;
+    function GetMethodItem(AIndex: Integer): IDLLMethod; stdcall;
+
+    /// <summary>
+    ///   Полное имя библиотеки
+    /// </summary>
+    property DllName: string
+             read GetDllName;
+    /// <summary>
+    ///   Кол-во методов библиотеки
+    /// </summary>
+    property MethodCount: Integer
+             read GetMethodCount;
+    /// <summary>
+    ///   Метод библиотеки по указанному индексу
+    /// </summary>
+    property MethodItem[AIndex: Integer]: IDLLMethod
+             read GetMethodItem;
+
+  end;
+
+  /// <summary>
+  ///   Интерфейс для уведомления о добавленном методе
+  /// </summry>
+  IDLLMethodsController = interface(IInterface)
+  ['{546BD2B1-DCAD-4ACB-8A60-6A5265173A9D}']
+    /// <summary>
+    ///   Идемпотентное добавление данных о методе
+    /// </summary>
+    /// <param name="ADllName"> Полное название библиотеки </param>
+    /// <param name="AMethodName"> Название метода </param>
+    /// <param name="AParams"> Список параметров </param>
+    /// <param name="ADescription"> Описание метода </param>
+    procedure AddDllMethod(const ADLLName: string; const AMethodName: string; const AParams: TArray<TParamInfo>;
+              const ADescription: string); stdcall;
+
+
+
+    // Получение списка запущенных задач
+    // Получение списка завершенных задач
+    // Получение списка методов библиотеки
+    // Получение списка библиолтек
+    // Получение информации по задаче
+  end;
+
+  /// <summary>
+  ///   Токен отмены операции
+  /// </summary>
+  ICancelationToken = interface(IInterface)
+  ['{9563E1D6-EE1A-4FAF-9CD8-1A1699E303ED}']
+    procedure Cancel(); stdcall;
+    function IsCancelationRequired(): Boolean; stdcall;
+  end;
+
+  /// <summary>
+  ///   Интерфейс описывает параметры метода
+  /// </summary>
+  IMethodParams = interface(IInterface)
+  ['{9958DAB7-7EFF-4FDF-8A1F-DB2C846DE0B0}']
+    function GetParamsCount(): Integer; stdcall;
+
+    /// <summary>
+    ///   Чтение параметра указанного типа
+    /// </summary>
+    /// <returns>
+    ///   Значение параметра
+    /// </returns>
+    /// <param name="AParamId"> Номер параметра </param>
+    function ReadParam<T>(AParamId: Integer): T; stdcall;
+
+    /// <summary>
+    ///   Чтение типа указанного параметра
+    /// </summary>
+    /// <returns>Тип параметра</returns>
+    /// <param name="AParamId"> Идентификатор параметра </param>
+    function ReadParamsType(AParamId: Integer): TParamType; stdcall;
+    /// <summary>
+    ///   Чтение информации указанного параметра
+    /// </summary>
+    /// <returns>Информация по параметру</returns>
+    /// <param name="AParamId"> Идентификатор параметра </param>
+    function ReadParamsInfo(AParamId: Integer): TParamInfo; stdcall;
+
+    /// <summary>
+    ///   Запись параметра указанного типа и индекса
+    /// </summary>
+    /// <param name="AParamId"> Идентификатор параметра </param>
+    /// <param name="AParamValue"> Значение параметра </param>
+    procedure WriteParam<T>(AParamId: Integer; AParamValue: T); stdcall;
+
+    /// <summary>
+    ///   Кол-во параметров
+    /// </summary>
+    property ParamsCount: Integer
+             read GetParamsCount;
+  end;
+
+  /// <summary>
+  ///   Интерфейс задачи (запущенная или уже выполненная)
+  /// </summary>
+  IDLLTask = interface(IInterface)
+  ['{851B6452-54C5-4D65-BFFD-FB1CAB99DA19}']
+    function GetCancelationToken(): ICancelationToken; stdcall;
+    function GetDllMethod(): IDLLMethod; stdcall;
+    function GetDllTaskId(): Integer; stdcall;
+    function GetMethodLog(): string; stdcall;
+    function GetMethodParams(): IMethodParams; stdcall;
+    function GetMethodResult(): string; stdcall;
+    function GetProgress(): Integer; stdcall;
+    function GetProgressText(): string; stdcall;
+    function GetState(): TDLLTaskState; stdcall;
+
+    /// <summary>
+    ///   Токен отмены операции
+    /// </summary>
+    property CancelationToken: ICancelationToken
+             read GetCancelationToken;
+    /// <summary>
+    ///   Метод DLL, который выполняется в рамках задачи
+    /// </summary>
+    property DllMethod: IDLLMethod
+             read GetDllMethod;
+    /// <summary>
+    ///   Идентификатор задачи
+    /// </summary>
+    property DllTaskId: Integer
+             read GetDllTaskId;
+    /// <summary>
+    ///   Лог выполнения задачи
+    /// </summary>
+    property MethodLog: string
+             read GetMethodLog;
+    /// <summary>
+    ///   Список параметров, с которыми был запущен метод
+    /// </summary>
+    property MethodParams: IMethodParams
+             read GetMethodParams;
+    /// <summary>
+    ///   JSON результат выполнения задачи
+    /// </summary>
+    property MethodResult: string
+             read GetMethodResult;
+    /// <summary>
+    ///   Прогресс выполнения задачи
+    /// </summary>
+    property Progress: Integer
+             read GetProgress;
+    /// <summary>
+    ///   Текст прогресса выполнения задачи
+    /// </summary>
+    property ProgressText: string
+             read GetProgressText;
+    /// <summary>
+    ///   Состояние выполнения задачи
+    /// </summary>
+    property State: TDLLTaskState
+             read GetState;
+
+  end;
+
+  /// <summary>
+  ///   Интерфейс обновления состояния задачи
+  /// </summary>
+  IDLLTaskUpdater = interface(IInterface)
+  ['{E817BD59-028D-41F9-B611-FC5A7F309D9F}']
+    /// <summary>
+    ///   Установка прогресса выполнения задачи
+    /// </summary>
+    /// <param name="AProgress"> Прогресс по операции </param>
+    /// <param name="AProgressText"> Текст прогресса </param>
+    procedure SetProgress(AProgress: Integer; const AProgressText: string); stdcall;
+
+    /// <summary>
+    ///   Добавление результата выполненной задачи
+    /// </summary>
+    /// <param name="AResult"> Текст результата </param>
+    procedure SetResult(const AResult: string); stdcall;
+
+    /// <summary>
+    /// Добавление лога
+    /// </summary>
+    /// <param name="ALogText"> Текст лога </param>
+    procedure AddLog(const ALogText: string); stdcall;
+
+    /// <summary>
+    ///   Установка ошибки
+    /// </summary>
+    procedure SetError(const AErrorMsg: string); stdcall;
+
+    /// <summary>
+    ///   Установка состояния задачи
+    /// </summary>
+    /// <param name="AState"> Новое состояние задачи </param>
+    procedure SetState(AState: TDLLTaskState); stdcall;
+  end;
+
+  /// <summary>
+  ///   Интерфейс информирования о прогрессе и результате операции
+  /// </summary>
+  IProgressInfo = interface(IInterface)
+    /// <summary>
+    ///   Установка прогресса выполнения операции
+    /// </summary>
+    /// <param name="ADLLTaskId"> Идентификатор текущей операции </param>
+    /// <param name="AProgress"> Прогресс по операции </param>
+    /// <param name="AProgressText"> Текст прогресса </param>
+    procedure SetProgress(ADLLTaskId: Integer; AProgress: Integer; const AProgressText: string); stdcall;
+
+    /// <summary>
+    ///   Добавление результата по указанной операции
+    /// </summary>
+    /// <param name="ADLLTaskId"> Идентификатор текущей операции </param>
+    /// <param name="AResult"> Текст результата </param>
+    procedure SetResult(ADLLTaskId: Integer; const AResult: string); stdcall;
+
+    /// <summary>
+    /// Добавление лога по указанной задаче
+    /// </summary>
+    /// <param name="ADLLTaskId">Идентификатор выполняемой задачи </param>
+    /// <param name="ALogText"> Текст лога </param>
+    procedure AddLog(ADLLTaskId: Integer; const ALogText: string); stdcall;
+  end;
+
+  // Каждая библиотека должна реализовывать методы
+  // procedure GetDllMethods(ADllReader: IDLLMethodsController);
+  // procedure InvokeDLLMethod(ADllMethod: IDLLMethod; AParams: IMethodParams);
+
+
+  (*
+  Как происходит работа приложения?
+
+  Есть интерфейс, который реализуется в приложении.
+  В каждой библиотеке должен быть метод, в который передается этот интерфейс - ReadDllTasks(AInfo: IDLLMethodsController).
+  При выполнении этого метода, происходит заполнение данных по выполняемым задачам.
+  В том числе, наверно добавляется адрес метода в памяти.
+
+  Также каждый метод должен уметь показывать прогресс операции, и иметь возможность остановки выполнения!
+  Т.е. будет еще 2 дополнительных параметра, которые будут передаваться в любую задачу.
+  CancelationToken, Progress, Results. Может еще отдельный интерфейс по чтению параметров?
+
+
+  Если есть интерфейс чтения параметров, то он должен создаваться со списком параметров,
+  и должна быть возможность читать параметры типизированно!
+
+  И результат тоже должен быть структурированным!
+  Может быть как число, строка, так и разные комбинации!
+  Может быть параметры передавать в виде JSON?
+  И результат также выдавать в виде JSON.
+
+  В самом приложении уже реализовать отображении структуры JSON
+
+  *)
+
+implementation
+
+end.
