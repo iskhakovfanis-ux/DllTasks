@@ -1,0 +1,60 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{BCF101BB-3069-4476-8D1C-8CA78385D29D}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="App\DllTasks.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Libs\FileUtils\FileUtils.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Libs\ShellUtils\ShellUtils.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="DllTasks">
+        <MSBuild Projects="App\DllTasks.dproj"/>
+    </Target>
+    <Target Name="DllTasks:Clean">
+        <MSBuild Projects="App\DllTasks.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DllTasks:Make">
+        <MSBuild Projects="App\DllTasks.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="FileUtils">
+        <MSBuild Projects="Libs\FileUtils\FileUtils.dproj"/>
+    </Target>
+    <Target Name="FileUtils:Clean">
+        <MSBuild Projects="Libs\FileUtils\FileUtils.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="FileUtils:Make">
+        <MSBuild Projects="Libs\FileUtils\FileUtils.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="ShellUtils">
+        <MSBuild Projects="Libs\ShellUtils\ShellUtils.dproj"/>
+    </Target>
+    <Target Name="ShellUtils:Clean">
+        <MSBuild Projects="Libs\ShellUtils\ShellUtils.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ShellUtils:Make">
+        <MSBuild Projects="Libs\ShellUtils\ShellUtils.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="DllTasks;FileUtils;ShellUtils"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="DllTasks:Clean;FileUtils:Clean;ShellUtils:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="DllTasks:Make;FileUtils:Make;ShellUtils:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
