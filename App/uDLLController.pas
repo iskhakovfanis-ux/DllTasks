@@ -3,7 +3,9 @@ unit uDLLController;
 interface
 
 uses
+  Winapi.Windows,
   System.SysUtils,
+  System.RTTI,
   System.Generics.Collections,
   Interfaces.DllReader,
 
@@ -35,10 +37,13 @@ type
   TDLLController = class(TObject)
   private
     FDLLInfoList: TObjectDictionary<string, TDLLInfo>;
+    FOnChangeTaskLog: TOnChangeTaskLog;
     FOnChangeTaskProgress: TOnChangeTaskProgress;
     FOnChangeTaskState: TOnChangeTaskState;
     FTaskList: TList<IDLLTask>;
+    function GetDLLItem(const ADLLName: string): TDLLInfo;
   protected
+    procedure DoChangeTaskLog(const ATask: IDLLTask);
     procedure DoChangeTaskProgress(const ATask: IDLLTask; AProgress: Integer);
     procedure DoChangeTaskState(const ATask: IDLLTask; AState: TDLLTaskState);
   public
@@ -54,11 +59,18 @@ type
     /// <param name="ADescription"> ќписание метода </param>
     procedure AddDllMethod(const ADLLName: string; const AMethodName: string; const AParams: TArray<TParamInfo>;
               const ADescription: string);
-    function StartTask(const AMethod: IDLLMethod; const AMethodParams: IDLLMethodParams): IDLLTask;
+    function CheckLibraryIsLoaded(const ADLLName: string): Boolean;
+    function LoadLibrary(const ADLLName: string): Boolean;
+    function StartTask(const AMethod: IDLLMethod; const AMethodParams: TArray<TValue>): IDLLTask;
   public
+    property DLLItem[const ADLLName: string]: TDLLInfo
+             read GetDLLItem;
     property TaskList: TList<IDLLTask>
              read FTaskList;
   public
+    property OnChangeTaskLog: TOnChangeTaskLog
+             read FOnChangeTaskLog
+             write FOnChangeTaskLog;
     property OnChangeTaskProgress: TOnChangeTaskProgress
              read FOnChangeTaskProgress
              write FOnChangeTaskProgress;
@@ -126,7 +138,7 @@ var
   TmpDllName: string;
   TmpDllInfo: TDLLInfo;
 begin
-  TmpDllName := LowerCase(ADLLName);
+  TmpDllName := LowerCase(Trim(string(PChar(ADLLName))));
   if (not FDLLInfoList.TryGetValue(TmpDllName, TmpDllInfo)) then
   begin
     TmpDllInfo := TDLLInfo.Create(ADLLName);
@@ -134,6 +146,17 @@ begin
   end;
 
   TmpDllInfo.AddMethod(AMethodName, ADescription, AParams);
+end;
+
+function TDLLController.CheckLibraryIsLoaded(const ADLLName: string): Boolean;
+begin
+  Result := FDLLInfoList.ContainsKey(LowerCase(Trim(ADLLName)));
+end;
+
+procedure TDLLController.DoChangeTaskLog(const ATask: IDLLTask);
+begin
+  if Assigned(FOnChangeTaskLog) then
+    FOnChangeTaskLog(ATask);
 end;
 
 procedure TDLLController.DoChangeTaskProgress(const ATask: IDLLTask; AProgress: Integer);
@@ -148,11 +171,42 @@ begin
     FOnChangeTaskState(ATask, AState);
 end;
 
-function TDLLController.StartTask(const AMethod: IDLLMethod; const AMethodParams: IDLLMethodParams): IDLLTask;
+function TDLLController.GetDLLItem(const ADLLName: string): TDLLInfo;
+begin
+  if (not FDLLInfoList.TryGetValue(LowerCase(Trim(ADLLName)), Result)) then
+    Result := nil;
+end;
+
+function TDLLController.LoadLibrary(const ADLLName: string): Boolean;
+var
+  TmpLibHandle: THandle;
+  TmpProcAddr: Pointer;
+begin
+  // ≈сли библиотека уже загружена, то больше не разрешаем загрузку
+  if CheckLibraryIsLoaded(ADLLName) then
+    Exit(False);
+
+  TmpLibHandle := LoadLibraryW(PWideChar(ADLLName));
+  try
+    TmpProcAddr := GetProcAddress(TmpLibHandle, PWideChar(CS_GET_DLL_METHODS));
+
+    // ≈сли есть метод в библиотеке дл€ вызова задачи, то запускаем задачу
+    if Assigned(TmpProcAddr) then
+      TDLLInfoReadMethod(TmpProcAddr)(TDLLMethodsController.Create(Self))
+    else
+      Exit(False);
+
+    Result := True;
+  finally
+    FreeLibrary(TmpLibHandle);
+  end;
+end;
+
+function TDLLController.StartTask(const AMethod: IDLLMethod; const AMethodParams: TArray<TValue>): IDLLTask;
 var
   TmpDLLTask: TDLLTask;
 begin
-  TmpDLLTask := TDLLTask.Create(AMethod, AMethodParams, DoChangeTaskProgress, DoChangeTaskState);
+  TmpDLLTask := TDLLTask.Create(AMethod, AMethodParams, DoChangeTaskProgress, DoChangeTaskState, DoChangeTaskLog);
   Result := TmpDLLTask;
   TmpDLLTask.Start();
   FTaskList.Add(Result);

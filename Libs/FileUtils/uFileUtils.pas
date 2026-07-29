@@ -7,23 +7,32 @@ uses
   System.StrUtils,
   System.Classes,
   System.Math,
+  System.RTTI,
   System.Generics.Collections,
   System.RegularExpressions,
   Interfaces.DllReader;
 
 procedure SearchFilesInner(ACancelationToken: ICancelationToken; ATaskUpdater: IDLLTaskUpdater;
           const AMaskList: TArray<string>; const ASearchPath: string);
-
 procedure CountOccurrencesInFileInner(ACancelationToken: ICancelationToken; ATaskUpdater: IDLLTaskUpdater;
           const AMaskList: TArray<string>; const AFileName: string);
 
-procedure SearchFiles(AMethodParams: IDLLMethodParams;
-          ACancelationToken: ICancelationToken; ATaskUpdater: IDLLTaskUpdater);
-
-procedure CountOccurrencesInFile(AMethodParams: IDLLMethodParams;
-          ACancelationToken: ICancelationToken; ATaskUpdater: IDLLTaskUpdater);
+procedure SearchFiles(ACancelationToken: ICancelationToken; ATaskUpdater: IDLLTaskUpdater; const AParams: TArray<TValue>);
+procedure CountOccurrencesInFile(ACancelationToken: ICancelationToken; ATaskUpdater: IDLLTaskUpdater;
+          const AParams: TArray<TValue>);
 
 implementation
+
+procedure SearchFiles(ACancelationToken: ICancelationToken; ATaskUpdater: IDLLTaskUpdater; const AParams: TArray<TValue>);
+begin
+  SearchFilesInner(ACancelationToken, ATaskUpdater, AParams[0].AsType<TArray<string>>(), AParams[1].AsType<string>());
+end;
+
+procedure CountOccurrencesInFile(ACancelationToken: ICancelationToken; ATaskUpdater: IDLLTaskUpdater;
+          const AParams: TArray<TValue>);
+begin
+  CountOccurrencesInFileInner(ACancelationToken, ATaskUpdater, AParams[0].AsType<TArray<string>>(), AParams[1].AsType<string>());
+end;
 
 procedure SearchFilesInner(ACancelationToken: ICancelationToken; ATaskUpdater: IDLLTaskUpdater;
           const AMaskList: TArray<string>; const ASearchPath: string);
@@ -109,30 +118,6 @@ begin
     FreeAndNil(TmpDirList);
     FreeAndNil(TmpFoundFiles);
   end;
-end;
-
-procedure CountOccurrencesInFile(AMethodParams: IDLLMethodParams; ACancelationToken: ICancelationToken;
-          ATaskUpdater: IDLLTaskUpdater);
-var
-  TmpFileName: string;
-  TmpSearchMasks: TArray<string>;
-begin
-  TmpSearchMasks := nil; //string(PAnsiString(AMethodParams.ReadParam(0)^));
-  TmpFileName := string(PAnsiString(AMethodParams.ReadParam(1))^);
-
-  CountOccurrencesInFileInner(ACancelationToken, ATaskUpdater, TmpSearchMasks, TmpFileName);
-end;
-
-procedure SearchFiles(AMethodParams: IDLLMethodParams; ACancelationToken: ICancelationToken;
-          ATaskUpdater: IDLLTaskUpdater);
-var
-  TmpSearchDir: string;
-  TmpSearchMasks: TArray<string>;
-begin
-  TmpSearchMasks := nil; //string(PAnsiString(AMethodParams.ReadParam(0)^));
-  TmpSearchDir := string(PAnsiString(AMethodParams.ReadParam(1))^);
-
-  SearchFilesInner(ACancelationToken, ATaskUpdater, TmpSearchMasks, TmpSearchDir);
 end;
 
 procedure CountOccurrencesInFileInner(ACancelationToken: ICancelationToken; ATaskUpdater: IDLLTaskUpdater;

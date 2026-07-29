@@ -109,8 +109,22 @@
         <DCCReference Include="uDLLMethod.pas"/>
         <DCCReference Include="uDLLController.pas"/>
         <DCCReference Include="uCancelationToken.pas"/>
-        <DCCReference Include="uDLLMethodParams.pas"/>
         <DCCReference Include="uDLLTask.pas"/>
+        <DCCReference Include="Forms\ufmMethodParams.pas">
+            <Form>fmStartMethod</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="Forms\ufmPageMethodInfo.pas">
+            <Form>fmPageMethodInfo</Form>
+            <FormType>dfm</FormType>
+            <DesignClass>TFrame</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Forms\ufmPageTaskInfo.pas">
+            <Form>fmPageTaskInfo</Form>
+            <FormType>dfm</FormType>
+            <DesignClass>TFrame</DesignClass>
+        </DCCReference>
+        <DCCReference Include="uViewController.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -138,7 +152,7 @@
                 </Excluded_Packages>
             </Delphi.Personality>
             <Deployment Version="3">
-                <DeployFile LocalName="Win32\Debug\DllTasks.exe" Configuration="Debug" Class="ProjectOutput">
+                <DeployFile LocalName="..\BIN\Win32\Debug\DllTasks.exe" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
                         <RemoteName>DllTasks.exe</RemoteName>
                         <Overwrite>true</Overwrite>

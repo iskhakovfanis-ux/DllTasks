@@ -97,7 +97,6 @@
         </DelphiCompile>
         <DCCReference Include="uShellUtils.pas"/>
         <DCCReference Include="..\..\Shared\Interfaces.DllReader.pas"/>
-        <DCCReference Include="uMethodInvoke.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

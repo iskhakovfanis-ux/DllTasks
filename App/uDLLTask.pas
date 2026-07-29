@@ -7,12 +7,14 @@ uses
   System.Classes,
   System.SysUtils,
   System.SyncObjs,
+  System.RTTI,
   Interfaces.DllReader,
   uDLLMethod;
 
 type
   TOnChangeTaskProgress = procedure (const ADLLTask: IDLLTask; AProgress: Integer) of object;
   TOnChangeTaskState = procedure (const ADLLTask: IDLLTask; ANewState: TDLLTaskState) of object;
+  TOnChangeTaskLog = procedure (const ADLLTask: IDLLTask) of object;
 
   TDLLTask = class(TInterfacedObject, IDLLTask, IDLLTaskUpdater)
   private
@@ -21,8 +23,9 @@ type
     FError: string;
     FLock: TCriticalSection;
     FMethodLog: string;
-    FMethodParams: IDLLMethodParams;
+    FMethodParams: TArray<TValue>;
     FMethodResult: string;
+    FOnChangeTaskLog: TOnChangeTaskLog;
     FOnChangeTaskProgress: TOnChangeTaskProgress;
     FOnChangeTaskState: TOnChangeTaskState;
     FProgress: Integer;
@@ -31,9 +34,8 @@ type
     FThread: TThread;
   private
     function GetDllMethod(): IDLLMethod; stdcall;
-    function GetDllTaskId(): Integer; stdcall;
     function GetMethodLog(): string; stdcall;
-    function GetMethodParams(): IDLLMethodParams; stdcall;
+    function GetMethodParams: TArray<TValue>; stdcall;
     function GetMethodResult(): string; stdcall;
     function GetProgress(): Integer; stdcall;
     function GetProgressText(): string; stdcall;
@@ -42,8 +44,8 @@ type
     procedure DoExecute(AThread: TThread);
     procedure InvokeMethod;
   public
-    constructor Create(const ADLLMethod: IDLLMethod; const ADLLMethodParams: IDLLMethodParams;
-                AOnChangeTaskProgress: TOnChangeTaskProgress; AOnChangeTaskState: TOnChangeTaskState);
+    constructor Create(const ADLLMethod: IDLLMethod; const ADLLMethodParams: TArray<TValue>; AOnChangeTaskProgress:
+        TOnChangeTaskProgress; AOnChangeTaskState: TOnChangeTaskState; AOnChangeTaskLog: TOnChangeTaskLog);
     destructor Destroy(); override;
   public
     procedure Start();
@@ -93,11 +95,6 @@ type
     property DllMethod: IDLLMethod
              read GetDllMethod;
     /// <summary>
-    ///   Идентификатор задачи
-    /// </summary>
-    property DllTaskId: Integer
-             read GetDllTaskId;
-    /// <summary>
     ///   Лог выполнения задачи
     /// </summary>
     property MethodLog: string
@@ -105,8 +102,7 @@ type
     /// <summary>
     ///   Список параметров, с которыми был запущен метод
     /// </summary>
-    property MethodParams: IDLLMethodParams
-             read GetMethodParams;
+    property MethodParams: TArray<TValue> read GetMethodParams;
     /// <summary>
     ///   JSON результат выполнения задачи
     /// </summary>
@@ -140,8 +136,9 @@ type
 
 implementation
 
-constructor TDLLTask.Create(const ADLLMethod: IDLLMethod; const ADLLMethodParams: IDLLMethodParams;
-            AOnChangeTaskProgress: TOnChangeTaskProgress; AOnChangeTaskState: TOnChangeTaskState);
+constructor TDLLTask.Create(const ADLLMethod: IDLLMethod; const ADLLMethodParams: TArray<TValue>;
+    AOnChangeTaskProgress: TOnChangeTaskProgress; AOnChangeTaskState: TOnChangeTaskState; AOnChangeTaskLog:
+    TOnChangeTaskLog);
 begin
   inherited Create();
 
@@ -171,6 +168,9 @@ begin
   FMethodLog := Format('%0:s'#$D#$A'%1:s %2:s',
                       [FMethodLog, FormatDateTime('dd.mm.yyyy hh:nn:ss.zzz', Now()), ALogText]);
   FLock.Leave();
+
+  if Assigned(FOnChangeTaskLog) then
+    FOnChangeTaskLog(Self);
 end;
 
 procedure TDLLTask.DoExecute(AThread: TThread);
@@ -199,11 +199,6 @@ begin
   Result := FDllMethod;
 end;
 
-function TDLLTask.GetDllTaskId(): Integer;
-begin
-
-end;
-
 function TDLLTask.GetMethodLog(): string;
 begin
   FLock.Enter();
@@ -211,7 +206,7 @@ begin
   FLock.Leave();
 end;
 
-function TDLLTask.GetMethodParams(): IDLLMethodParams;
+function TDLLTask.GetMethodParams: TArray<TValue>;
 begin
   Result := FMethodParams;
 end;
@@ -255,11 +250,11 @@ begin
 
     // Если есть метод в библиотеке для вызова задачи, то запускаем задачу
     if Assigned(TmpProcAddr) then
-      TInvokeDLLMethod(TmpProcAddr)(FMethodParams, FCancelationToken, Self)
+      TInvokeDLLMethod(TmpProcAddr)(FCancelationToken, Self, FMethodParams)
     else
       raise Exception.CreateFmt('The Library hasn`t method %0:s', [FDllMethod.DLLMethodName]);
   finally
-    CloseHandle(TmpLibHandle);
+    FreeLibrary(TmpLibHandle);
   end;
 end;
 

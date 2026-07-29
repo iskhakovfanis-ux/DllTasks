@@ -15,8 +15,7 @@ uses
   System.SysUtils,
   System.Classes,
   uFileUtils in 'uFileUtils.pas',
-  Interfaces.DllReader in '..\..\Shared\Interfaces.DllReader.pas',
-  uMethodInvoke in 'uMethodInvoke.pas';
+  Interfaces.DllReader in '..\..\Shared\Interfaces.DllReader.pas';
 
 {$R *.res}
 
@@ -31,12 +30,12 @@ begin
   SetLength(TmpParams, 2);
   TmpParams[0] := TParamInfo.Create(
     'ASearchMask',
-    ptAnsiStringList,
+    ptStringList,
     'Маска имени файла, по которой будет выполняться поиск. Может содержать несколько масок'
   );
   TmpParams[0] := TParamInfo.Create(
     'ASearchPath',
-    ptAnsiString,
+    ptString,
     'Путь к папке, в которой будет выполняться поиск'
   );
   ADLLMethodsReader.AddDllMethod(string(@TmpDllName[0]), 'SearchFiles', TmpParams,
@@ -46,12 +45,12 @@ begin
   SetLength(TmpParams, 2);
   TmpParams[0] := TParamInfo.Create(
     'ASearchSubstr',
-    ptAnsiStringList,
+    ptStringList,
     'Строка, по которой выполняется поиск внутри бинарного файла'
   );
   TmpParams[0] := TParamInfo.Create(
     'AFileName',
-    ptAnsiString,
+    ptString,
     'Путь к бинарному файлу'
   );
   ADLLMethodsReader.AddDllMethod(string(@TmpDllName[0]), 'CountOccurrencesInFile', TmpParams,

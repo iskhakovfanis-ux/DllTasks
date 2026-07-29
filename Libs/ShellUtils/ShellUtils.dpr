@@ -11,13 +11,36 @@ library ShellUtils;
   using PChar or ShortString parameters. }
 
 uses
+  Winapi.Windows,
   System.SysUtils,
   System.Classes,
   uShellUtils in 'uShellUtils.pas',
-  Interfaces.DllReader in '..\..\Shared\Interfaces.DllReader.pas',
-  uMethodInvoke in 'uMethodInvoke.pas';
+  Interfaces.DllReader in '..\..\Shared\Interfaces.DllReader.pas';
 
 {$R *.res}
+
+procedure GetDllMethods(ADLLMethodsReader: IDLLMethodsController); stdcall;
+var
+  TmpParams: TArray<TParamInfo>;
+  TmpDLLName: array[0..MAX_PATH] of Char;
+begin
+  GetModuleFileName(HInstance, TmpDLLName, SizeOf(TmpDLLName));
+
+  // Добавление информации по задаче 1
+  SetLength(TmpParams, 2);
+  TmpParams[0] := TParamInfo.Create(
+    'ASearchMask',
+    ptStringList,
+    'Маска имени файла, по которой будет выполняться поиск. Может содержать несколько масок'
+  );
+  TmpParams[0] := TParamInfo.Create(
+    'ASearchPath',
+    ptString,
+    'Путь к папке, в которой будет выполняться поиск'
+  );
+  ADLLMethodsReader.AddDllMethod(string(@TmpDllName[0]), 'SearchFiles', TmpParams,
+    'Задача по поиску файлов по указанной маске в указанном каталоге и его подкаталогах');
+end;
 
 begin
 end.

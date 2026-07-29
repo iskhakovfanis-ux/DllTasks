@@ -3,6 +3,7 @@ unit Interfaces.DllReader;
 interface
 
 uses
+  System.RTTI,
   System.Generics.Collections;
 
 type
@@ -15,11 +16,11 @@ type
     // Целочисленный тип
     ptInteger             = 1,
     // Строка
-    ptAnsiString          = 2,
-    // Список строк (разделенные символом #0, и в конце 2 символа #0#0)
-    ptAnsiStringList      = 3,
-    // Целочисленный тип (1 байт)
-    ptByte                = 4
+    ptString              = 2,
+    // Массив строк
+    ptStringList          = 3,
+    // Логическое значение
+    ptBoolean             = 4
   );
 
   /// <summary>
@@ -40,6 +41,39 @@ type
     tsError
   );
 
+const
+  CS_PARAM_TYPE_STR: array [TParamType] of string = (
+    // ptUnknown
+    'Unknown',
+    // ptInteger
+    'Integer',
+    // ptString
+    'String',
+    // ptStringList
+    'StringList',
+    // ptBoolean
+    'Boolean'
+  );
+
+
+  CS_TASK_STATE: array [TDLLTaskState] of string = (
+    // tsNone
+    'Задача не запускалась',
+    // tsWorking
+    'Выполняется',
+    // tsFinished,
+    'Завершена',
+    // tsInterrupting,
+    'Прерывается',
+    // tsInterrupted,
+    'Остановлена',
+    // tsError
+    'Завершена с ошибкой'
+  );
+
+type
+
+
   /// <summary>
   ///   Информация о параметре метода
   /// </summary>
@@ -52,12 +86,6 @@ type
     Description: string;
   public
     constructor Create(const AParamName: string; AParamType: TParamType; const ADescription: string);
-  end;
-
-  TParamData = record
-  public
-    ParamData: Pointer;
-    ParamType: TParamType;
   end;
 
   /// <summary>
@@ -168,49 +196,8 @@ type
   ['{9563E1D6-EE1A-4FAF-9CD8-1A1699E303ED}']
     procedure Cancel(); stdcall;
     function IsCancelationRequired(): Boolean; stdcall;
-    function IsFinished(): Boolean; stdcall;
-  end;
-
-  /// <summary>
-  ///   Интерфейс описывает параметры метода
-  /// </summary>
-  IDLLMethodParams = interface(IInterface)
-  ['{9958DAB7-7EFF-4FDF-8A1F-DB2C846DE0B0}']
-    function GetParamsCount(): Integer; stdcall;
-
-    /// <summary>
-    ///   Чтение параметра указанного индекса
-    /// </summary>
-    /// <returns>
-    ///   Значение параметра
-    /// </returns>
-    /// <param name="AParamId"> Номер параметра </param>
-    function ReadParam(AParamId: Integer): Pointer; stdcall;
-    /// <summary>
-    ///   Чтение типа указанного параметра
-    /// </summary>
-    /// <returns>Тип параметра</returns>
-    /// <param name="AParamId"> Идентификатор параметра </param>
-    function ReadParamsType(AParamId: Integer): TParamType; stdcall;
-    /// <summary>
-    ///   Чтение информации указанного параметра
-    /// </summary>
-    /// <returns>Информация по параметру</returns>
-    /// <param name="AParamId"> Идентификатор параметра </param>
-    function ReadParamsInfo(AParamId: Integer): TParamInfo; stdcall;
-
-    /// <summary>
-    ///   Запись параметра указанного индекса
-    /// </summary>
-    /// <param name="AParamId"> Идентификатор параметра </param>
-    /// <param name="AParamValue"> Значение параметра </param>
-    procedure WriteParam(AParamId: Integer; AParamValue: Pointer); stdcall;
-
-    /// <summary>
-    ///   Кол-во параметров
-    /// </summary>
-    property ParamsCount: Integer
-             read GetParamsCount;
+    function Wait(AWait: Cardinal): Cardinal; overload; stdcall;
+    function Wait(AWaitHandle: THandle; AWait: Cardinal): Cardinal; overload; stdcall;
   end;
 
   /// <summary>
@@ -219,9 +206,8 @@ type
   IDLLTask = interface(IInterface)
   ['{851B6452-54C5-4D65-BFFD-FB1CAB99DA19}']
     function GetDllMethod(): IDLLMethod; stdcall;
-    function GetDllTaskId(): Integer; stdcall;
     function GetMethodLog(): string; stdcall;
-    function GetMethodParams(): IDLLMethodParams; stdcall;
+    function GetMethodParams: TArray<TValue>; stdcall;
     function GetMethodResult(): string; stdcall;
     function GetProgress(): Integer; stdcall;
     function GetProgressText(): string; stdcall;
@@ -238,11 +224,6 @@ type
     property DllMethod: IDLLMethod
              read GetDllMethod;
     /// <summary>
-    ///   Идентификатор задачи
-    /// </summary>
-    property DllTaskId: Integer
-             read GetDllTaskId;
-    /// <summary>
     ///   Лог выполнения задачи
     /// </summary>
     property MethodLog: string
@@ -250,7 +231,7 @@ type
     /// <summary>
     ///   Список параметров, с которыми был запущен метод
     /// </summary>
-    property MethodParams: IDLLMethodParams
+    property MethodParams: TArray<TValue>
              read GetMethodParams;
     /// <summary>
     ///   JSON результат выполнения задачи
@@ -315,15 +296,14 @@ type
   /// Портотип метода библиотеки для получения всех задач, которые может выполнять библиотека
   /// </summary>
   /// <param name="ADLLMethodsReader"> Интерфейс для заполнения списка задач </param>
-  TDLLInfoReadMethod = procedure(const ADLLMethodsReader: IDLLMethodsController);
+  TDLLInfoReadMethod = procedure(const ADLLMethodsReader: IDLLMethodsController); stdcall;
 
   /// <summary>
   /// Портотип функции для запуска метода из библиотеки
   /// </summary>
   /// <param name="AMethodParams"> Список параметров метода </param>
   /// <param name="ATaskUpdater"> Интерфейс для изменения состояния задачи </param>
-  TInvokeDLLMethod = procedure(AMethodParams: IDLLMethodParams;
-                               ACancelationToken: ICancelationToken; ATaskUpdater: IDLLTaskUpdater);
+  TInvokeDLLMethod = procedure(ACancelationToken: ICancelationToken; ATaskUpdater: IDLLTaskUpdater; const AParams: TArray<TValue>); stdcall;
 
   // Каждая библиотека должна реализовывать методы
   // procedure GetDllMethods(ADLLMethodsReader: IDLLMethodsController);
