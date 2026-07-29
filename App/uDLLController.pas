@@ -35,7 +35,12 @@ type
   TDLLController = class(TObject)
   private
     FDLLInfoList: TObjectDictionary<string, TDLLInfo>;
+    FOnChangeTaskProgress: TOnChangeTaskProgress;
+    FOnChangeTaskState: TOnChangeTaskState;
     FTaskList: TList<IDLLTask>;
+  protected
+    procedure DoChangeTaskProgress(const ATask: IDLLTask; AProgress: Integer);
+    procedure DoChangeTaskState(const ATask: IDLLTask; AState: TDLLTaskState);
   public
     constructor Create();
     destructor Destroy(); override;
@@ -53,6 +58,13 @@ type
   public
     property TaskList: TList<IDLLTask>
              read FTaskList;
+  public
+    property OnChangeTaskProgress: TOnChangeTaskProgress
+             read FOnChangeTaskProgress
+             write FOnChangeTaskProgress;
+    property OnChangeTaskState: TOnChangeTaskState
+             read FOnChangeTaskState
+             write FOnChangeTaskState;
   end;
 
   /// <summary>
@@ -124,18 +136,25 @@ begin
   TmpDllInfo.AddMethod(AMethodName, ADescription, AParams);
 end;
 
+procedure TDLLController.DoChangeTaskProgress(const ATask: IDLLTask; AProgress: Integer);
+begin
+  if Assigned(FOnChangeTaskProgress) then
+    FOnChangeTaskProgress(ATask, AProgress);
+end;
+
+procedure TDLLController.DoChangeTaskState(const ATask: IDLLTask; AState: TDLLTaskState);
+begin
+  if Assigned(FOnChangeTaskState) then
+    FOnChangeTaskState(ATask, AState);
+end;
+
 function TDLLController.StartTask(const AMethod: IDLLMethod; const AMethodParams: IDLLMethodParams): IDLLTask;
 var
   TmpDLLTask: TDLLTask;
 begin
-  TmpDLLTask := TDLLTask.Create(AMethod, AMethodParams);
-
-  // TODO: Нужно еще передать обработчик прогресса операции!
-
-  TmpDLLTask.Start();
-
+  TmpDLLTask := TDLLTask.Create(AMethod, AMethodParams, DoChangeTaskProgress, DoChangeTaskState);
   Result := TmpDLLTask;
-
+  TmpDLLTask.Start();
   FTaskList.Add(Result);
 end;
 

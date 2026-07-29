@@ -27,7 +27,6 @@ type
     /// </returns>
     /// <param name="AParamId"> Номер параметра </param>
     function ReadParam(AParamId: Integer): Pointer; stdcall;
-
     /// <summary>
     ///   Чтение типа указанного параметра
     /// </summary>

@@ -6,17 +6,30 @@ uses
   Winapi.Windows,
   System.Classes,
   System.SysUtils,
-  Interfaces.DllReader, uDLLMethod;
+  System.SyncObjs,
+  Interfaces.DllReader,
+  uDLLMethod;
 
 type
+  TOnChangeTaskProgress = procedure (const ADLLTask: IDLLTask; AProgress: Integer) of object;
+  TOnChangeTaskState = procedure (const ADLLTask: IDLLTask; ANewState: TDLLTaskState) of object;
+
   TDLLTask = class(TInterfacedObject, IDLLTask, IDLLTaskUpdater)
   private
     FCancelationToken: ICancelationToken;
     FDllMethod: IDLLMethod;
+    FError: string;
+    FLock: TCriticalSection;
+    FMethodLog: string;
     FMethodParams: IDLLMethodParams;
+    FMethodResult: string;
+    FOnChangeTaskProgress: TOnChangeTaskProgress;
+    FOnChangeTaskState: TOnChangeTaskState;
+    FProgress: Integer;
+    FProgressText: string;
+    FState: TDLLTaskState;
     FThread: TThread;
   private
-    function GetCancelationToken(): ICancelationToken; stdcall;
     function GetDllMethod(): IDLLMethod; stdcall;
     function GetDllTaskId(): Integer; stdcall;
     function GetMethodLog(): string; stdcall;
@@ -27,8 +40,10 @@ type
     function GetState(): TDLLTaskState; stdcall;
   protected
     procedure DoExecute(AThread: TThread);
+    procedure InvokeMethod;
   public
-    constructor Create(const ADLLMethod: IDLLMethod; const ADLLMethodParams: IDLLMethodParams);
+    constructor Create(const ADLLMethod: IDLLMethod; const ADLLMethodParams: IDLLMethodParams;
+                AOnChangeTaskProgress: TOnChangeTaskProgress; AOnChangeTaskState: TOnChangeTaskState);
     destructor Destroy(); override;
   public
     procedure Start();
@@ -62,12 +77,16 @@ type
     /// </summary>
     /// <param name="AState"> Новое состояние задачи </param>
     procedure SetState(AState: TDLLTaskState); stdcall;
+    /// <summary>
+    ///   Остановка выполнения задачи
+    /// </summary>
+    procedure Stop; stdcall;
   public
     /// <summary>
     ///   Токен отмены операции
     /// </summary>
     property CancelationToken: ICancelationToken
-             read GetCancelationToken;
+             read FCancelationToken;
     /// <summary>
     ///   Метод DLL, который выполняется в рамках задачи
     /// </summary>
@@ -121,12 +140,16 @@ type
 
 implementation
 
-constructor TDLLTask.Create(const ADLLMethod: IDLLMethod; const ADLLMethodParams: IDLLMethodParams);
+constructor TDLLTask.Create(const ADLLMethod: IDLLMethod; const ADLLMethodParams: IDLLMethodParams;
+            AOnChangeTaskProgress: TOnChangeTaskProgress; AOnChangeTaskState: TOnChangeTaskState);
 begin
   inherited Create();
 
+  FLock := TCriticalSection.Create();
   FDllMethod := ADLLMethod;
   FMethodParams := ADLLMethodParams;
+  FOnChangeTaskProgress := AOnChangeTaskProgress;
+  FOnChangeTaskState := AOnChangeTaskState;
 
   FThread := TDLLTaskThread.Create(Self);
 end;
@@ -137,22 +160,38 @@ begin
     FCancelationToken.Cancel();
 
   FreeAndNil(FThread);
+  FreeAndNil(FLock);
 
   inherited Destroy();
 end;
 
 procedure TDLLTask.AddLog(const ALogText: string);
 begin
-
+  FLock.Enter();
+  FMethodLog := Format('%0:s'#$D#$A'%1:s %2:s',
+                      [FMethodLog, FormatDateTime('dd.mm.yyyy hh:nn:ss.zzz', Now()), ALogText]);
+  FLock.Leave();
 end;
 
 procedure TDLLTask.DoExecute(AThread: TThread);
 begin
-end;
+  // Устанавливаем состояние запуска задачи
+  SetState(tsWorking);
+  try
+    // Вызываем метод с текущими параметрами
+    InvokeMethod();
+  except
+    on E: Exception do
+    begin
+      SetError(Format('Exception. %0:s: %1:s', [E.ClassName, E.Message]));
+    end;
+  end;
 
-function TDLLTask.GetCancelationToken(): ICancelationToken;
-begin
-
+  // Устанавливаем состояние завершения
+  if CancelationToken.IsCancelationRequired then
+    SetState(tsInterrupted)
+  else
+    SetState(tsFinished);
 end;
 
 function TDLLTask.GetDllMethod(): IDLLMethod;
@@ -167,7 +206,9 @@ end;
 
 function TDLLTask.GetMethodLog(): string;
 begin
-
+  FLock.Enter();
+  Result := FMethodLog;
+  FLock.Leave();
 end;
 
 function TDLLTask.GetMethodParams(): IDLLMethodParams;
@@ -177,47 +218,128 @@ end;
 
 function TDLLTask.GetMethodResult(): string;
 begin
-
+  FLock.Enter();
+  Result := FMethodResult;
+  FLock.Leave();
 end;
 
 function TDLLTask.GetProgress(): Integer;
 begin
-
+  FLock.Enter();
+  Result := FProgress;
+  FLock.Leave();
 end;
 
 function TDLLTask.GetProgressText(): string;
 begin
-
+  FLock.Enter();
+  Result := FProgressText;
+  FLock.Leave();
 end;
 
 function TDLLTask.GetState(): TDLLTaskState;
 begin
+  FLock.Enter();
+  Result := FState;
+  FLock.Leave();
+end;
 
+procedure TDLLTask.InvokeMethod();
+var
+  TmpLibHandle: THandle;
+  TmpProcAddr: Pointer;
+begin
+  TmpLibHandle := LoadLibraryW(PWideChar(FDLLMethod.DLLName));
+  try
+    TmpProcAddr := GetProcAddress(TmpLibHandle, PWideChar(FDllMethod.DLLMethodName));
+
+    // Если есть метод в библиотеке для вызова задачи, то запускаем задачу
+    if Assigned(TmpProcAddr) then
+      TInvokeDLLMethod(TmpProcAddr)(FMethodParams, FCancelationToken, Self)
+    else
+      raise Exception.CreateFmt('The Library hasn`t method %0:s', [FDllMethod.DLLMethodName]);
+  finally
+    CloseHandle(TmpLibHandle);
+  end;
 end;
 
 procedure TDLLTask.SetError(const AErrorMsg: string);
 begin
-
+  FLock.Enter();
+  FError := AErrorMsg;
+  AddLog(AErrorMsg);
+  FLock.Leave();
 end;
 
 procedure TDLLTask.SetProgress(AProgress: Integer; const AProgressText: string);
+var
+  TmpChanged: Boolean;
 begin
+  FLock.Enter();
 
+  TmpChanged := (FProgress <> AProgress) or SameText(FProgressText, AProgressText);
+
+  if TmpChanged then
+  begin
+    FProgress := AProgress;
+    FProgressText := AProgressText;
+  end;
+
+  FLock.Leave();
+
+  // Если произошла смена прогресса, то отправляем уведомление
+  if TmpChanged then
+    FOnChangeTaskProgress(Self, AProgress);
 end;
 
 procedure TDLLTask.SetResult(const AResult: string);
 begin
-
+  FLock.Enter();
+  FMethodResult := AResult;
+  FLock.Leave();
 end;
 
 procedure TDLLTask.SetState(AState: TDLLTaskState);
+var
+  TmpChanged: Boolean;
 begin
+  FLock.Enter();
 
+  TmpChanged := False;
+  // Если устанавливается состояние завершения
+  if (AState in [tsFinished, tsInterrupting, tsInterrupted, tsError]) then
+  begin
+    // И текущее состояние является рабочим или в процессе прерывания,
+    // то разрешаем смену состояния
+    if (FState in [tsWorking, tsInterrupting]) then
+    begin
+      FState := AState;
+      TmpChanged := True;
+    end;
+  end
+  // Иначе, если это обычная смена состояния, то также разрешаем смену состояния
+  else if (AState in [tsWorking]) and (FState = tsNone) then
+  begin
+    FState := AState;
+    TmpChanged := True;
+  end;
+
+  FLock.Leave();
+
+  // Если произошла смена состояния, то отправляем уведомление
+  if TmpChanged then
+    FOnChangeTaskState(Self, FState);
 end;
 
 procedure TDLLTask.Start();
 begin
   FThread.Start();
+end;
+
+procedure TDLLTask.Stop();
+begin
+  SetState(tsInterrupting);
+  FCancelationToken.Cancel();
 end;
 
 constructor TDLLTaskThread.Create(AInternalTask: TDLLTask);

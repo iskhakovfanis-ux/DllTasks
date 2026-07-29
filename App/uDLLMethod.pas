@@ -10,12 +10,12 @@ type
   private
     FDescription: string;
     FDLLName: string;
-    FMethodName: string;
+    FDLLMethodName: string;
     FParams: TArray<TParamInfo>;
   private
     function GetDescription(): string; stdcall;
     function GetDLLName(): string; stdcall;
-    function GetMethodName(): string; stdcall;
+    function GetDLLMethodName: string; stdcall;
     function GetParams(): TArray<TParamInfo>; stdcall;
   public
     constructor Create(const ADllName, AMethodName, ADescription: string; const AParams: TArray<TParamInfo>);
@@ -33,8 +33,8 @@ type
     /// <summary>
     ///   Название метода
     /// </summary>
-    property MethodName: string
-             read GetMethodName;
+    property DLLMethodName: string
+             read GetDLLMethodName;
     /// <summary>
     ///   Список параметров
     /// </summary>
@@ -49,7 +49,7 @@ begin
   inherited Create();
 
   FDLLName := ADllName;
-  FMethodName := AMethodName;
+  FDLLMethodName := AMethodName;
   FDescription := ADescription;
   FParams := AParams;
 end;
@@ -64,9 +64,9 @@ begin
   Result := FDLLName;
 end;
 
-function TDLLMethod.GetMethodName(): string;
+function TDLLMethod.GetDLLMethodName: string;
 begin
-  Result := FMethodName;
+  Result := FDLLMethodName;
 end;
 
 function TDLLMethod.GetParams(): TArray<TParamInfo>;

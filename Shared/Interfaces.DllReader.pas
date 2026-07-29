@@ -50,6 +50,14 @@ type
     ParamType: TParamType;
     // Описание параметра
     Description: string;
+  public
+    constructor Create(const AParamName: string; AParamType: TParamType; const ADescription: string);
+  end;
+
+  TParamData = record
+  public
+    ParamData: Pointer;
+    ParamType: TParamType;
   end;
 
   /// <summary>
@@ -59,7 +67,7 @@ type
   ['{13F1F1B2-21E5-403B-A3E3-CF4DAB637835}']
     function GetDescription(): string; stdcall;
     function GetDLLName(): string; stdcall;
-    function GetMethodName(): string; stdcall;
+    function GetDLLMethodName: string; stdcall;
     function GetParams(): TArray<TParamInfo>; stdcall;
 
     /// <summary>
@@ -75,8 +83,8 @@ type
     /// <summary>
     ///   Название метода
     /// </summary>
-    property MethodName: string
-             read GetMethodName;
+    property DLLMethodName: string
+             read GetDLLMethodName;
     /// <summary>
     ///   Список параметров
     /// </summary>
@@ -171,14 +179,13 @@ type
     function GetParamsCount(): Integer; stdcall;
 
     /// <summary>
-    ///   Чтение параметра указанного типа
+    ///   Чтение параметра указанного индекса
     /// </summary>
     /// <returns>
     ///   Значение параметра
     /// </returns>
     /// <param name="AParamId"> Номер параметра </param>
     function ReadParam(AParamId: Integer): Pointer; stdcall;
-
     /// <summary>
     ///   Чтение типа указанного параметра
     /// </summary>
@@ -193,7 +200,7 @@ type
     function ReadParamsInfo(AParamId: Integer): TParamInfo; stdcall;
 
     /// <summary>
-    ///   Запись параметра указанного типа и индекса
+    ///   Запись параметра указанного индекса
     /// </summary>
     /// <param name="AParamId"> Идентификатор параметра </param>
     /// <param name="AParamValue"> Значение параметра </param>
@@ -211,7 +218,6 @@ type
   /// </summary>
   IDLLTask = interface(IInterface)
   ['{851B6452-54C5-4D65-BFFD-FB1CAB99DA19}']
-    function GetCancelationToken(): ICancelationToken; stdcall;
     function GetDllMethod(): IDLLMethod; stdcall;
     function GetDllTaskId(): Integer; stdcall;
     function GetMethodLog(): string; stdcall;
@@ -222,10 +228,10 @@ type
     function GetState(): TDLLTaskState; stdcall;
 
     /// <summary>
-    ///   Токен отмены операции
+    ///   Остановка выполнения задачи
     /// </summary>
-    property CancelationToken: ICancelationToken
-             read GetCancelationToken;
+    procedure Stop(); stdcall;
+
     /// <summary>
     ///   Метод DLL, который выполняется в рамках задачи
     /// </summary>
@@ -305,10 +311,28 @@ type
     procedure SetState(AState: TDLLTaskState); stdcall;
   end;
 
-  // Каждая библиотека должна реализовывать методы
-  // procedure GetDllMethods(ADllReader: IDLLMethodsController);
-  // procedure InvokeDLLMethod(ADllMethod: IDLLMethod; AParams: IDLLMethodParams);
+  /// <summary>
+  /// Портотип метода библиотеки для получения всех задач, которые может выполнять библиотека
+  /// </summary>
+  /// <param name="ADLLMethodsReader"> Интерфейс для заполнения списка задач </param>
+  TDLLInfoReadMethod = procedure(const ADLLMethodsReader: IDLLMethodsController);
 
+  /// <summary>
+  /// Портотип функции для запуска метода из библиотеки
+  /// </summary>
+  /// <param name="AMethodParams"> Список параметров метода </param>
+  /// <param name="ATaskUpdater"> Интерфейс для изменения состояния задачи </param>
+  TInvokeDLLMethod = procedure(AMethodParams: IDLLMethodParams;
+                               ACancelationToken: ICancelationToken; ATaskUpdater: IDLLTaskUpdater);
+
+  // Каждая библиотека должна реализовывать методы
+  // procedure GetDllMethods(ADLLMethodsReader: IDLLMethodsController);
+  // И методы, которые возвращались библиотекой с типом
+  // procedure (AMethodParams: IDLLMethodParams;
+  //            ACancelationToken: ICancelationToken; ATaskUpdater: IDLLTaskUpdater);
+
+  const
+    CS_GET_DLL_METHODS   = 'GetDllMethods';
 
   (*
   Как происходит работа приложения?
@@ -336,5 +360,12 @@ type
   *)
 
 implementation
+
+constructor TParamInfo.Create(const AParamName: string; AParamType: TParamType; const ADescription: string);
+begin
+  ParamName := AParamName;
+  ParamType := AParamType;
+  Description := ADescription;
+end;
 
 end.

@@ -11,6 +11,7 @@ library FileUtils;
   using PChar or ShortString parameters. }
 
 uses
+  Winapi.Windows,
   System.SysUtils,
   System.Classes,
   uFileUtils in 'uFileUtils.pas',
@@ -18,6 +19,49 @@ uses
   uMethodInvoke in 'uMethodInvoke.pas';
 
 {$R *.res}
+
+procedure GetDllMethods(ADLLMethodsReader: IDLLMethodsController); stdcall;
+var
+  TmpParams: TArray<TParamInfo>;
+  TmpDLLName: array[0..MAX_PATH] of Char;
+begin
+  GetModuleFileName(HInstance, TmpDLLName, SizeOf(TmpDLLName));
+
+  // Добавление информации по задаче 1
+  SetLength(TmpParams, 2);
+  TmpParams[0] := TParamInfo.Create(
+    'ASearchMask',
+    ptAnsiStringList,
+    'Маска имени файла, по которой будет выполняться поиск. Может содержать несколько масок'
+  );
+  TmpParams[0] := TParamInfo.Create(
+    'ASearchPath',
+    ptAnsiString,
+    'Путь к папке, в которой будет выполняться поиск'
+  );
+  ADLLMethodsReader.AddDllMethod(string(@TmpDllName[0]), 'SearchFiles', TmpParams,
+    'Задача по поиску файлов по указанной маске в указанном каталоге и его подкаталогах');
+
+  // Добавление информации по задаче 2
+  SetLength(TmpParams, 2);
+  TmpParams[0] := TParamInfo.Create(
+    'ASearchSubstr',
+    ptAnsiStringList,
+    'Строка, по которой выполняется поиск внутри бинарного файла'
+  );
+  TmpParams[0] := TParamInfo.Create(
+    'AFileName',
+    ptAnsiString,
+    'Путь к бинарному файлу'
+  );
+  ADLLMethodsReader.AddDllMethod(string(@TmpDllName[0]), 'CountOccurrencesInFile', TmpParams,
+    'Задача по поиску кол-ва вхождений подстроки в файле');
+end;
+
+exports
+  GetDllMethods,
+  SearchFiles,
+  CountOccurrencesInFile;
 
 begin
 end.
