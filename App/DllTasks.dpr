@@ -1,7 +1,7 @@
 program DllTasks;
 
 uses
-  FastMM4,
+  ShareMem,
   Vcl.Forms,
   uMain in 'Forms\uMain.pas' {Form1},
   Interfaces.DllReader in '..\Shared\Interfaces.DllReader.pas',

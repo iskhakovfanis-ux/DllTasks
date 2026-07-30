@@ -11,6 +11,7 @@ library FileUtils;
   using PChar or ShortString parameters. }
 
 uses
+  ShareMem,
   Winapi.Windows,
   System.SysUtils,
   System.Classes,
@@ -26,7 +27,7 @@ var
   TmpDLLNameLen: Cardinal;
   TmpDLLNameStr: string;
 begin
-  TmpDLLNameLen := GetModuleFileName(HInstance, TmpDLLName, SizeOf(TmpDLLName));
+  TmpDLLNameLen := GetModuleFileName(HInstance, TmpDLLName, Length(TmpDLLName));
   SetString(TmpDLLNameStr, TmpDLLName, TmpDLLNameLen);
 
   // Добавление информации по задаче 1

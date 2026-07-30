@@ -279,7 +279,7 @@ var
 begin
   FLock.Enter();
 
-  TmpChanged := (FProgress <> AProgress) or SameText(FProgressText, AProgressText);
+  TmpChanged := (FProgress <> AProgress) or (not SameText(FProgressText, AProgressText));
 
   if TmpChanged then
   begin

@@ -41,12 +41,18 @@ end;
 
 function TParamValue.ReadAsBoolean(): Boolean;
 begin
+  if (Length(FData) < SizeOf(Boolean)) then
+    raise Exception.Create('ReadAsBoolean: значение параметра не задано или повреждено');
+
   Result := PBoolean(@FData[0])^;
 end;
 
 function TParamValue.ReadAsInt(): Integer;
 begin
-  Result := PInteger(FData[0])^;
+  if (Length(FData) < SizeOf(Integer)) then
+    raise Exception.Create('ReadAsInt: значение параметра не задано или повреждено');
+
+  Result := PInteger(@FData[0])^;
 end;
 
 function TParamValue.ReadAsString(): string;

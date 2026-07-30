@@ -18,7 +18,7 @@ procedure CountOccurrencesInFileInner(const ACancelationToken: ICancelationToken
 
 procedure SearchFiles(const ACancelationToken: ICancelationToken; const ATaskUpdater: IDLLTaskUpdater; const AParams: TArray<IParamValue>); stdcall;
 procedure CountOccurrencesInFile(const ACancelationToken: ICancelationToken; const ATaskUpdater: IDLLTaskUpdater;
-          const AParams: TArray<IParamValue>);
+          const AParams: TArray<IParamValue>); stdcall;
 
 implementation
 
@@ -158,7 +158,7 @@ begin
           Exit();
 
         // Получаем строку
-        TmpCurStr := TEncoding.ANSI.GetString(TmpBuf, 0, TmpReadSize);
+        TmpCurStr := LowerCase(TEncoding.ANSI.GetString(TmpBuf, 0, TmpReadSize));
 
         for TmpI := 0 to High(AMaskList) do
         begin
@@ -169,7 +169,7 @@ begin
           then
             TmpCurOffset := TmpCrossOffset - Length(AMaskList[TmpI])
           else
-            TmpCurOffset := 0;
+            TmpCurOffset := 1;
 
           repeat
             // Если операция прервана пользователем, то выходим
@@ -177,10 +177,10 @@ begin
               Exit();
 
             // Выполняем поиск подстроки внутри строки
-            TmpCurOffset := PosEx(AMaskList[TmpI], TmpCurStr, TmpCurOffset);
+            TmpCurOffset := PosEx(LowerCase(AMaskList[TmpI]), TmpCurStr, TmpCurOffset);
 
             // Если найдена подстрока, то добавляем в список
-            if (TmpCurOffset >= 0) then
+            if (TmpCurOffset > 0) then
             begin
               if (not Assigned(TmpOccurencesByMaskList[TmpI])) then
                 TmpOccurencesByMaskList[TmpI] := TList<Int64>.Create();
@@ -188,8 +188,10 @@ begin
               // Добавляем позицию вхождения подстроки в файле
               TmpOccurencesByMaskList[TmpI].Add(TmpOffset + TmpCurOffset);
               ATaskUpdater.AddLog(Format('Found new occurence "%0:s" on position "%1:d"', [AMaskList[TmpI], TmpOffset + TmpCurOffset]));
+
+              Inc(TmpCurOffset);
             end;
-          until (TmpCurOffset >= 0);
+          until (TmpCurOffset = 0);
         end;
         Inc(TmpOffset, TmpReadSize - TmpCrossOffset);
       until TmpReadSize < Length(TmpBuf);

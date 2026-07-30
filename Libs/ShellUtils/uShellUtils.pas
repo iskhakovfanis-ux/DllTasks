@@ -53,7 +53,7 @@ begin
 
   try
     // Если не удалось запустить процесс, то выводим ошибку
-    if (not CreateProcess(nil, PChar(ACmdLine), nil, nil, False, CREATE_NO_WINDOW, nil, nil, TmpStartupInfo, TmpProcessInfo)) then
+    if (not CreateProcess(nil, PChar(ACmdLine), nil, nil, True, CREATE_NO_WINDOW, nil, nil, TmpStartupInfo, TmpProcessInfo)) then
     begin
       ATaskUpdater.SetError(Format('Exception: %0:s', [SysErrorMessage(GetLastError)]));
       Exit();

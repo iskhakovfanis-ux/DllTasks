@@ -11,6 +11,7 @@ library ShellUtils;
   using PChar or ShortString parameters. }
 
 uses
+  ShareMem,
   Winapi.Windows,
   System.SysUtils,
   System.Classes,
@@ -26,24 +27,23 @@ var
   TmpDLLNameLen: Cardinal;
   TmpDLLNameStr: string;
 begin
-  TmpDLLNameLen := GetModuleFileName(HInstance, TmpDLLName, SizeOf(TmpDLLName));
+  TmpDLLNameLen := GetModuleFileName(HInstance, TmpDLLName, Length(TmpDLLName));
   SetString(TmpDLLNameStr, TmpDLLName, TmpDLLNameLen);
 
   // Добавление информации по задаче 1
-  SetLength(TmpParams, 2);
+  SetLength(TmpParams, 1);
   TmpParams[0] := TParamInfo.Create(
-    'ASearchMask',
-    ptStringList,
-    'Маска имени файла, по которой будет выполняться поиск. Может содержать несколько масок'
-  );
-  TmpParams[1] := TParamInfo.Create(
-    'ASearchPath',
+    'ACmdLine',
     ptString,
-    'Путь к папке, в которой будет выполняться поиск'
+    'Командная строка запускаемого процесса'
   );
-  ADLLMethodsReader.AddDllMethod(TmpDLLNameStr, 'SearchFiles', TmpParams,
-    'Задача по поиску файлов по указанной маске в указанном каталоге и его подкаталогах');
+  ADLLMethodsReader.AddDllMethod(TmpDLLNameStr, 'ExecuteCommand', TmpParams,
+    'Задача по запуску внешнего процесса с перехватом его стандартного вывода');
 end;
+
+exports
+  GetDllMethods,
+  ExecuteCommand;
 
 begin
 end.

@@ -108,28 +108,12 @@ end;
 
 procedure TDLLMethodsController.AddDllMethod(const ADLLName, AMethodName: string; const AParams: TArray<TParamInfo>;
           const ADescription: string);
-var
-  TmpParams: TArray<TParamInfo>;
-  TmpI: Integer;
 begin
   if (not Assigned(FInstance)) then
     Exit();
 
-  SetLength(TmpParams, Length(AParams));
-  for TmpI := 0 to High(AParams) do
-  begin
-    // Копируем записи из памяти DLL в память приложения
-    TmpParams[TmpI] := TParamInfo.Create(
-      string(PChar(AParams[TmpI].ParamName)),
-      AParams[TmpI].ParamType,
-      string(PChar(AParams[TmpI].Description)));
-  end;
-
   // Вызываем процедуру добавления метода с копированием строк из памяти DLL в память приложения
-  FInstance.AddDllMethod(string(PChar(ADLLName)),
-    string(PChar(AMethodName)),
-    TmpParams,
-    string(PChar(ADescription)));
+  FInstance.AddDllMethod(ADLLName, AMethodName, AParams, ADescription);
 end;
 
 constructor TDLLController.Create;

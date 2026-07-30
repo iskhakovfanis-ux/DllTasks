@@ -53,7 +53,7 @@ var
   TmpParamId: Integer;
   TmpParamInfo: TParamInfo;
   TmpListItem: TListItem;
-  //TmpLog: TStringList;
+  TmpLog: TStringList;
 begin
   pnButtons.Visible := ATask.State in [tsNone, tsWorking, tsInterrupting];
   btnStopTask.Enabled := ATask.State in [tsNone, tsWorking];
@@ -75,19 +75,19 @@ begin
     end;
   end;
 
-  //if (ATask <> FDLLTask) then
-    mmLog.Text := ATask.MethodLog;
-//  else if (mmLog.Text <> ATask.MethodLog) then
-//  begin
-//    TmpLog := TStringList.Create();
-//    try
-//      // Копируем только хвост лока
-//      TmpLog.Text := Copy(ATask.MethodLog, Length(mmLog.Text), MaxInt);
-//      mmLog.Lines.AddStrings(TmpLog);
-//    finally
-//      FreeAndNil(TmpLog);
-//    end;
-//  end;
+  if (ATask <> FDLLTask) then
+    mmLog.Text := ATask.MethodLog
+  else if (mmLog.Text <> ATask.MethodLog) then
+  begin
+    TmpLog := TStringList.Create();
+    try
+      // Копируем только хвост лока
+      TmpLog.Text := Copy(ATask.MethodLog, Length(mmLog.Text), MaxInt);
+      mmLog.Lines.AddStrings(TmpLog);
+    finally
+      FreeAndNil(TmpLog);
+    end;
+  end;
 
   mmResult.Text := ATask.MethodResult;
 
