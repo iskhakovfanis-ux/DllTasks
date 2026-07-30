@@ -23,11 +23,8 @@ object fmPageMethodInfo: TfmPageMethodInfo
         Caption = 'Description'
         Width = 300
       end>
+    ReadOnly = True
     TabOrder = 0
     ViewStyle = vsReport
-    ExplicitLeft = 55
-    ExplicitTop = 65
-    ExplicitWidth = 250
-    ExplicitHeight = 150
   end
 end

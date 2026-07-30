@@ -45,6 +45,12 @@ var
   TmpSearchRec: TSearchRec;
   TmpResult: string;
 begin
+  if (not DirectoryExists(ASearchPath)) then
+  begin
+    ATaskUpdater.SetError(Format('Folder "%0:s" is not found', [ASearchPath]));
+    Exit();
+  end;
+
   TmpDirList := TQueue<string>.Create();
   TmpFoundFiles := TStringList.Create();
   try
@@ -133,6 +139,12 @@ var
   TmpResult: TStringBuilder;
   TmpJ: Integer;
 begin
+  if (not FileExists(AFileName)) then
+  begin
+    ATaskUpdater.SetError(Format('File "%0:s" is not found', [AFileName]));
+    Exit();
+  end;
+
   SetLength(TmpBuf, High(Word));
 
   TmpOffset := 0;

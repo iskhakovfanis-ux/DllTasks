@@ -66,6 +66,7 @@ object Form1: TForm1
               Caption = 'Path'
             end>
           OwnerData = True
+          ReadOnly = True
           RowSelect = True
           TabOrder = 1
           ViewStyle = vsReport
@@ -114,10 +115,12 @@ object Form1: TForm1
               Width = 200
             end>
           OwnerData = True
+          ReadOnly = True
           RowSelect = True
           TabOrder = 1
           ViewStyle = vsReport
           OnData = lvMethodsData
+          OnDblClick = lvMethodsDblClick
           OnSelectItem = lvMethodsSelectItem
         end
       end
@@ -145,6 +148,7 @@ object Form1: TForm1
             Width = 200
           end>
         OwnerData = True
+        ReadOnly = True
         RowSelect = True
         TabOrder = 0
         ViewStyle = vsReport

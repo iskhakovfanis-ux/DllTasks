@@ -15,7 +15,7 @@ object fmPageTaskInfo: TfmPageTaskInfo
       AlignWithMargins = True
       Left = 20
       Top = 48
-      Width = 146
+      Width = 806
       Height = 13
       Margins.Left = 20
       Margins.Top = 15
@@ -23,12 +23,13 @@ object fmPageTaskInfo: TfmPageTaskInfo
       Margins.Bottom = 5
       Align = alTop
       Caption = #1057#1087#1080#1089#1086#1082' '#1087#1072#1088#1072#1084#1077#1090#1088#1086#1074' '#1079#1072#1087#1091#1089#1082#1072':'
+      ExplicitWidth = 146
     end
     object lbLog: TLabel
       AlignWithMargins = True
       Left = 20
       Top = 241
-      Width = 126
+      Width = 806
       Height = 13
       Margins.Left = 20
       Margins.Top = 10
@@ -36,12 +37,13 @@ object fmPageTaskInfo: TfmPageTaskInfo
       Margins.Bottom = 5
       Align = alTop
       Caption = #1051#1086#1075' '#1074#1099#1087#1086#1083#1085#1077#1085#1080#1103' '#1079#1072#1076#1072#1095#1080':'
+      ExplicitWidth = 126
     end
     object lbResult: TLabel
       AlignWithMargins = True
       Left = 20
       Top = 434
-      Width = 161
+      Width = 806
       Height = 13
       Margins.Left = 20
       Margins.Top = 10
@@ -49,12 +51,13 @@ object fmPageTaskInfo: TfmPageTaskInfo
       Margins.Bottom = 5
       Align = alTop
       Caption = #1056#1077#1079#1091#1083#1100#1090#1072#1090' '#1074#1099#1087#1086#1083#1085#1077#1085#1080#1103' '#1079#1072#1076#1072#1095#1080':'
+      ExplicitWidth = 161
     end
     object lbCurState: TLabel
       AlignWithMargins = True
       Left = 20
       Top = 15
-      Width = 143
+      Width = 806
       Height = 13
       Margins.Left = 20
       Margins.Top = 15
@@ -62,6 +65,7 @@ object fmPageTaskInfo: TfmPageTaskInfo
       Margins.Bottom = 5
       Align = alTop
       Caption = #1058#1077#1082#1091#1097#1077#1077' '#1089#1086#1089#1090#1086#1103#1085#1080#1077' '#1079#1072#1076#1072#1095#1080':'
+      ExplicitWidth = 143
     end
     object lvParams: TListView
       AlignWithMargins = True
@@ -87,6 +91,7 @@ object fmPageTaskInfo: TfmPageTaskInfo
           Caption = 'Value'
           Width = 200
         end>
+      ReadOnly = True
       TabOrder = 0
       ViewStyle = vsReport
     end

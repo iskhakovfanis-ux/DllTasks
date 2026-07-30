@@ -46,6 +46,7 @@ type
     procedure lvDLLListData(Sender: TObject; Item: TListItem);
     procedure lvDLLListSelectItem(Sender: TObject; Item: TListItem; Selected: Boolean);
     procedure lvMethodsData(Sender: TObject; Item: TListItem);
+    procedure lvMethodsDblClick(Sender: TObject);
     procedure lvMethodsSelectItem(Sender: TObject; Item: TListItem; Selected: Boolean);
     procedure lvTaskListData(Sender: TObject; Item: TListItem);
     procedure lvTaskListSelectItem(Sender: TObject; Item: TListItem; Selected: Boolean);
@@ -188,6 +189,11 @@ begin
   TmpDllMethod := FMethodList[Item.Index];
   Item.Caption := TmpDllMethod.DLLMethodName;
   Item.SubItems.Add(TmpDllMethod.Description);
+end;
+
+procedure TForm1.lvMethodsDblClick(Sender: TObject);
+begin
+  StartTask(FCurMethod);
 end;
 
 procedure TForm1.lvMethodsSelectItem(Sender: TObject; Item: TListItem; Selected: Boolean);
