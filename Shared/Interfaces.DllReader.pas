@@ -136,32 +136,6 @@ type
   end;
 
   /// <summary>
-  ///   Информация о библиотеке
-  /// </summary>
-  (*IDLLInfo = interface(IInterface)
-    function GetDllName(): string; stdcall;
-    function GetMethodCount(): Integer; stdcall;
-    function GetMethodItem(AIndex: Integer): IDLLMethod; stdcall;
-
-    /// <summary>
-    ///   Полное имя библиотеки
-    /// </summary>
-    property DllName: string
-             read GetDllName;
-    /// <summary>
-    ///   Кол-во методов библиотеки
-    /// </summary>
-    property MethodCount: Integer
-             read GetMethodCount;
-    /// <summary>
-    ///   Метод библиотеки по указанному индексу
-    /// </summary>
-    property MethodItem[AIndex: Integer]: IDLLMethod
-             read GetMethodItem;
-
-  end;*)
-
-  /// <summary>
   ///   Интерфейс для уведомления о добавленном методе
   /// </summry>
   IDLLMethodsController = interface(IInterface)
@@ -175,33 +149,7 @@ type
     /// <param name="ADescription"> Описание метода </param>
     procedure AddDllMethod(const ADLLName: string; const AMethodName: string; const AParams: TArray<TParamInfo>;
               const ADescription: string); stdcall;
-
-
-
-    // Получение списка запущенных задач
-    // Получение списка завершенных задач
-    // Получение списка методов библиотеки
-    // Получение списка библиолтек
-    // Получение информации по задаче
   end;
-
-  (*ITaskController = interface(IInterface)
-  ['{82388F8A-36B4-4C0C-86CA-E83CB441CD95}']
-    function GetDllCount(): Integer; stdcall;
-    function GetDllItem(AIndex: Integer): IDLLInfo; stdcall;
-
-    /// <summary>
-    ///   Кол-во загруженных библиотек
-    /// </summary>
-    property DllCount: Integer
-             read GetDllCount;
-    /// <summary>
-    ///   Информация об указанной библитеке
-    /// </summary>
-    property DllItem[AIndex: Integer]: IDLLInfo
-             read GetDllItem;
-
-  end;*)
 
   /// <summary>
   ///   Токен отмены операции
@@ -322,38 +270,13 @@ type
                                const AParams: TArray<IParamValue>); stdcall;
 
   // Каждая библиотека должна реализовывать методы
-  // procedure GetDllMethods(ADLLMethodsReader: IDLLMethodsController);
+  // procedure GetDllMethods(ADLLMethodsReader: IDLLMethodsController); stdcall;
   // И методы, которые возвращались библиотекой с типом
-  // procedure (AMethodParams: IDLLMethodParams;
-  //            ACancelationToken: ICancelationToken; ATaskUpdater: IDLLTaskUpdater);
+  // procedure (const ACancelationToken: ICancelationToken; const ATaskUpdater: IDLLTaskUpdater;
+  //            const AParams: TArray<IParamValue>); stdcall;
 
   const
     CS_GET_DLL_METHODS   = 'GetDllMethods';
-
-  (*
-  Как происходит работа приложения?
-
-  Есть интерфейс, который реализуется в приложении.
-  В каждой библиотеке должен быть метод, в который передается этот интерфейс - ReadDllTasks(AInfo: IDLLMethodsController).
-  При выполнении этого метода, происходит заполнение данных по выполняемым задачам.
-  В том числе, наверно добавляется адрес метода в памяти.
-
-  Также каждый метод должен уметь показывать прогресс операции, и иметь возможность остановки выполнения!
-  Т.е. будет еще 2 дополнительных параметра, которые будут передаваться в любую задачу.
-  CancelationToken, Progress, Results. Может еще отдельный интерфейс по чтению параметров?
-
-
-  Если есть интерфейс чтения параметров, то он должен создаваться со списком параметров,
-  и должна быть возможность читать параметры типизированно!
-
-  И результат тоже должен быть структурированным!
-  Может быть как число, строка, так и разные комбинации!
-  Может быть параметры передавать в виде JSON?
-  И результат также выдавать в виде JSON.
-
-  В самом приложении уже реализовать отображении структуры JSON
-
-  *)
 
 implementation
 

@@ -40,8 +40,6 @@ begin
   inherited Destroy();
 end;
 
-{ TCancelationToken }
-
 procedure TCancelationToken.Cancel();
 begin
   SetEvent(FCancelEvent);

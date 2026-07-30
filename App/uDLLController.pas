@@ -37,7 +37,7 @@ type
     FTaskList: TList<IDLLTask>;
   private
     function GetDLLItem(const ADLLName: string): TDLLInfo;
-    function GetDLLItems: TArray<TDLLInfo>;
+    function GetDLLItems(): TArray<TDLLInfo>;
   protected
     procedure DoChangeTaskLog(const ATask: IDLLTask);
     procedure DoChangeTaskProgress(const ATask: IDLLTask; AProgress: Integer);
@@ -61,7 +61,8 @@ type
   public
     property DLLItem[const ADLLName: string]: TDLLInfo
              read GetDLLItem;
-    property DLLItems: TArray<TDLLInfo> read GetDLLItems;
+    property DLLItems: TArray<TDLLInfo>
+             read GetDLLItems;
     property TaskList: TList<IDLLTask>
              read FTaskList;
   public
@@ -99,6 +100,7 @@ type
 
 implementation
 
+{$REGION 'TDLLMethodsController'}
 constructor TDLLMethodsController.Create(AInstance: TDLLController);
 begin
   inherited Create();
@@ -115,8 +117,10 @@ begin
   // Вызываем процедуру добавления метода с копированием строк из памяти DLL в память приложения
   FInstance.AddDllMethod(ADLLName, AMethodName, AParams, ADescription);
 end;
+{$ENDREGION}
 
-constructor TDLLController.Create;
+{$REGION 'TDLLController'}
+constructor TDLLController.Create();
 begin
   inherited Create();
 
@@ -124,15 +128,13 @@ begin
   FTaskList := TList<IDLLTask>.Create();
 end;
 
-destructor TDLLController.Destroy;
+destructor TDLLController.Destroy();
 begin
   FreeAndNil(FDLLInfoList);
   FreeAndNil(FTaskList);
 
   inherited Destroy();
 end;
-
-{ TDLLController }
 
 procedure TDLLController.AddDllMethod(const ADLLName, AMethodName: string; const AParams: TArray<TParamInfo>;
           const ADescription: string);
@@ -218,7 +220,9 @@ begin
   TmpDLLTask.Start();
   FTaskList.Add(Result);
 end;
+{$ENDREGION}
 
+{$REGION 'TDLLInfo'}
 constructor TDLLInfo.Create(const ADLLName: string);
 begin
   inherited Create();
@@ -238,5 +242,6 @@ procedure TDLLInfo.AddMethod(const AMethodName, AMethodDescription: string; cons
 begin
   FMethodList.Add(TDLLMethod.Create(FDLLName, AMethodName, AMethodDescription, AMethodParams));
 end;
+{$ENDREGION}
 
 end.

@@ -47,10 +47,11 @@ type
   protected
     procedure DoExecute(AThread: TThread);
     procedure FlushLog();
-    procedure InvokeMethod;
+    procedure InvokeMethod();
   public
-    constructor Create(const ADLLMethod: IDLLMethod; const ADLLMethodParams: TArray<IParamValue>; AOnChangeTaskProgress:
-        TOnChangeTaskProgress; AOnChangeTaskState: TOnChangeTaskState; AOnChangeTaskLog: TOnChangeTaskLog);
+    constructor Create(const ADLLMethod: IDLLMethod; const ADLLMethodParams: TArray<IParamValue>;
+                AOnChangeTaskProgress: TOnChangeTaskProgress; AOnChangeTaskState: TOnChangeTaskState;
+                AOnChangeTaskLog: TOnChangeTaskLog);
     destructor Destroy(); override;
   public
     procedure Start();
@@ -84,10 +85,11 @@ type
     /// </summary>
     /// <param name="AState"> Новое состояние задачи </param>
     procedure SetState(AState: TDLLTaskState); stdcall;
+
     /// <summary>
     ///   Остановка выполнения задачи
     /// </summary>
-    procedure Stop; stdcall;
+    procedure Stop(); stdcall;
   public
     /// <summary>
     ///   Токен отмены операции
@@ -107,7 +109,8 @@ type
     /// <summary>
     ///   Список параметров, с которыми был запущен метод
     /// </summary>
-    property MethodParams: TArray<IParamValue> read GetMethodParams;
+    property MethodParams: TArray<IParamValue>
+             read GetMethodParams;
     /// <summary>
     ///   JSON результат выполнения задачи
     /// </summary>
@@ -134,7 +137,7 @@ type
   private
     FInternalTask: TDLLTask;
   protected
-    procedure Execute; override;
+    procedure Execute(); override;
   public
     constructor Create(AInternalTask: TDLLTask);
   end;
@@ -142,8 +145,8 @@ type
 implementation
 
 constructor TDLLTask.Create(const ADLLMethod: IDLLMethod; const ADLLMethodParams: TArray<IParamValue>;
-    AOnChangeTaskProgress: TOnChangeTaskProgress; AOnChangeTaskState: TOnChangeTaskState; AOnChangeTaskLog:
-    TOnChangeTaskLog);
+            AOnChangeTaskProgress: TOnChangeTaskProgress; AOnChangeTaskState: TOnChangeTaskState;
+            AOnChangeTaskLog: TOnChangeTaskLog);
 begin
   inherited Create();
 
@@ -208,7 +211,6 @@ begin
     on E: Exception do
     begin
       SetError(Format('Exception. %0:s: %1:s', [E.ClassName, E.Message]));
-      SetState(tsError);
     end;
   end;
 
@@ -294,6 +296,7 @@ begin
   FLock.Enter();
   FError := string(PChar(AErrorMsg));
   AddLog(AErrorMsg);
+  SetState(tsError);
   FLock.Leave();
 end;
 

@@ -16,13 +16,15 @@ procedure SearchFilesInner(const ACancelationToken: ICancelationToken; const ATa
 procedure CountOccurrencesInFileInner(const ACancelationToken: ICancelationToken; const ATaskUpdater: IDLLTaskUpdater;
           const AMaskList: TArray<string>; const AFileName: string); stdcall;
 
-procedure SearchFiles(const ACancelationToken: ICancelationToken; const ATaskUpdater: IDLLTaskUpdater; const AParams: TArray<IParamValue>); stdcall;
+procedure SearchFiles(const ACancelationToken: ICancelationToken; const ATaskUpdater: IDLLTaskUpdater;
+          const AParams: TArray<IParamValue>); stdcall;
 procedure CountOccurrencesInFile(const ACancelationToken: ICancelationToken; const ATaskUpdater: IDLLTaskUpdater;
           const AParams: TArray<IParamValue>); stdcall;
 
 implementation
 
-procedure SearchFiles(const ACancelationToken: ICancelationToken; const ATaskUpdater: IDLLTaskUpdater; const AParams: TArray<IParamValue>);
+procedure SearchFiles(const ACancelationToken: ICancelationToken; const ATaskUpdater: IDLLTaskUpdater;
+          const AParams: TArray<IParamValue>);
 begin
   SearchFilesInner(ACancelationToken, ATaskUpdater, AParams[0].ReadAsStringList(), AParams[1].ReadAsString());
 end;

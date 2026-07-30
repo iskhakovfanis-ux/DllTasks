@@ -93,6 +93,7 @@ object Form1: TForm1
             Width = 131
             Height = 25
             Caption = #1047#1072#1087#1091#1089#1090#1080#1090#1100' '#1084#1077#1090#1086#1076
+            Enabled = False
             TabOrder = 0
             OnClick = btnStartMethodClick
           end
@@ -124,10 +125,6 @@ object Form1: TForm1
     object tsTaskList: TTabSheet
       Caption = #1057#1087#1080#1089#1086#1082' '#1079#1072#1076#1072#1095
       ImageIndex = 1
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
       object lvTaskList: TListView
         Left = 0
         Top = 0

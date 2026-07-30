@@ -1,4 +1,4 @@
-
+﻿
 unit uParamValue;
 
 interface
@@ -16,25 +16,27 @@ type
     FData: TArray<Byte>;
     FParamType: TParamType;
   private
-    function GetParamType: TParamType; stdcall;
+    function GetParamType(): TParamType; stdcall;
   public
-    function ReadAsBoolean: Boolean; stdcall;
-    function ReadAsInt: Integer; stdcall;
-    function ReadAsString: string; stdcall;
-    function ReadAsStringList: TArray<string>; stdcall;
-    function ReadValue: TArray<Byte>; stdcall;
-    function ToStringValue: string; stdcall;
+    function ReadAsBoolean(): Boolean; stdcall;
+    function ReadAsInt(): Integer; stdcall;
+    function ReadAsString(): string; stdcall;
+    function ReadAsStringList(): TArray<string>; stdcall;
+    function ReadValue(): TArray<Byte>; stdcall;
+    function ToStringValue(): string; stdcall;
     procedure WriteAsBoolean(AValue: Boolean); stdcall;
     procedure WriteAsInt(AValue: Integer); stdcall;
     procedure WriteAsString(const AValue: string); stdcall;
     procedure WriteAsStringList(const AValue: TArray<string>); stdcall;
     procedure WriteValue(AParamType: TParamType; const AValue: TArray<Byte>); stdcall;
-    property ParamType: TParamType read GetParamType;
+  public
+    property ParamType: TParamType
+             read GetParamType;
   end;
 
 implementation
 
-function TParamValue.GetParamType: TParamType;
+function TParamValue.GetParamType(): TParamType;
 begin
   Result := FParamType;
 end;

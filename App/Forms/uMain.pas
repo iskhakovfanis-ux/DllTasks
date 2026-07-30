@@ -67,39 +67,7 @@ type
     procedure UpdateDLLMethods(const ADLLInfo: TDLLInfo);
     procedure UpdateTaskList;
     procedure UpdateTaskState(const ATask: IDLLTask);
-    { Private declarations }
-  protected
-  public
-    { Public declarations }
   end;
-
-  (*
-
-
-  Добавление библиотеки в список
-  Отображение списка загруженных библиотек
-  Получение списка методов библиотеки
-
-  Отображение списка запущенных задач
-  Отображение списка выполненных задач
-  Остановка задачи
-  Отображение информации по задаче (состояние, лог, результат)
-
-
-  Одновлеменно не может быть выбрано Method и Task.
-  Если пользователь выбирает Method, то показывается детали метода
-  Если пользователь выбирает Task, то показываются детали задачи
-
-  Когда пользователь запускает задачу (со страницы метода), то происходит автоматический переход на вкладку
-  задач и выбирается задача (запущенная)
-  Можно показывать задачу только если установилось состояние Working
-
-  DllList меняется только при загрузке новой библиотеки
-  MethodList меняется при выборе библиотеки
-  TaskList меняется при изменении состояния задачи
-  TaskDetails меняется при изменении состояния задачи, либо при изменении лога
-
-  *)
 
 var
   Form1: TForm1;
@@ -178,19 +146,11 @@ begin
 end;
 
 function TForm1.LoadLibrary(const ADLLName: string): Boolean;
-//var
-//  TmpItem: TListItem;
 begin
   Result := FDLLController.LoadLibrary(ADLLName);
 
   if Result then
   begin
-//    TmpItem := lvDLLList.Items.Add();
-//
-//    TmpItem.Caption := ExtractFileName(ADLLName);
-//    TmpItem.Data := PChar(ADLLName);
-//    TmpItem.SubItems.Add(ExtractFilePath(ADLLName));
-
     FDllList.Clear();
     FDllList.AddRange(FDLLController.DLLItems);
 
@@ -313,22 +273,8 @@ begin
   end;
 end;
 
-procedure TForm1.UpdateTaskList;
-//var
-//  TmpTaskItem: IDLLTask;
-//  TmpItem: TListItem;
+procedure TForm1.UpdateTaskList();
 begin
-//  lvTaskList.Items.Clear();
-//
-//  for TmpTaskItem in FDLLController.TaskList do
-//  begin
-//    TmpItem := lvTaskList.Items.Add();
-//    TmpItem.Caption := TmpTaskItem.DllMethod.DLLMethodName;
-//    TmpItem.SubItems.Add(CS_TASK_STATE[TmpTaskItem.State]);
-//    TmpItem.SubItems.Add(TmpTaskItem.DllMethod.Description);
-//    TmpItem.Data := Pointer(TmpTaskItem);
-//  end;
-
   FTaskList.Clear();
   FTaskList.AddRange(FDLLController.TaskList);
 
@@ -347,12 +293,6 @@ begin
     UpdateTaskList()
   else
     lvTaskList.UpdateItems(TmpItemId, TmpItemId);
-
-//  FDLLController.TaskList.IndexOf(ATask);
-//  if (lvTaskList.Items.Count > TmpItemId) then
-//    lvTaskList.Items[TmpItemId].SubItems[0] := CS_TASK_STATE[ATask.State]
-//  else
-//    UpdateTaskList();
 end;
 
 end.

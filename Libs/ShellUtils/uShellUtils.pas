@@ -21,16 +21,17 @@ procedure ExecuteCommandInner(const ACancelationToken: ICancelationToken; const 
 var
   TmpStartupInfo: TStartupInfo;
   TmpProcessInfo: TProcessInformation;
-
   TmpSecurity: TSecurityAttributes;
   TmpStdOutRead: THandle;
   TmpStdOutWrite: THandle;
   TmpExitCode: Cardinal;
+  TmpReadTask: TThread;
 begin
   ZeroMemory(@TmpStartupInfo, SizeOf(TmpStartupInfo));
   TmpStartupInfo.cb := SizeOf(TmpStartupInfo);
   ZeroMemory(@TmpProcessInfo, SizeOf(TmpProcessInfo));
   TmpExitCode := ERROR_INVALID_FUNCTION;
+  TmpReadTask := nil;
 
   ZeroMemory(@TmpSecurity, SizeOf(TmpSecurity));
   TmpSecurity.nLength := SizeOf(TmpSecurity);
@@ -61,29 +62,36 @@ begin
 
     try
       try
-         // Запускаем задачу чтения данных из cmd
-         TTask.Run(
-          procedure
-          const
-            CI_BUFFER_SIZE = 4096;
-          var
-            TmpBuffer: array[0..CI_BUFFER_SIZE - 1] of Byte;
-            TmpBytesRead: DWORD;
-            TmpStr: UTF8String;
-          begin
-            while (not ACancelationToken.IsCancelationRequired()) do
+         // Запускаем задачу чтения данных из cmd - только если пайп реально создан,
+         // иначе ReadFile(INVALID_HANDLE_VALUE, ...) в цикле бессмысленен
+         if (TmpStdOutRead <> INVALID_HANDLE_VALUE) then
+         begin
+           TmpReadTask := TThread.CreateAnonymousThread(
+            procedure
+            const
+              CI_BUFFER_SIZE = 4096;
+            var
+              TmpBuffer: array[0..CI_BUFFER_SIZE - 1] of Byte;
+              TmpBytesRead: DWORD;
+              TmpStr: UTF8String;
             begin
-              if (not ReadFile(TmpStdOutRead, TmpBuffer, SizeOf(TmpBuffer), TmpBytesRead, nil)) then
-                Break;
+              while (not ACancelationToken.IsCancelationRequired()) do
+              begin
+                if (not ReadFile(TmpStdOutRead, TmpBuffer, SizeOf(TmpBuffer), TmpBytesRead, nil)) then
+                  Break;
 
-              if (TmpBytesRead = 0) then
-                Break;
+                if (TmpBytesRead = 0) then
+                  Break;
 
-              SetString(TmpStr, PAnsiChar(@TmpBuffer[0]), TmpBytesRead);
-              ATaskUpdater.AddLog(string(TmpStr));
-            end;
-          end
-         );
+                SetString(TmpStr, PAnsiChar(@TmpBuffer[0]), TmpBytesRead);
+                ATaskUpdater.AddLog(string(TmpStr));
+              end;
+            end
+           );
+
+           TmpReadTask.FreeOnTerminate := False;
+           TmpReadTask.Start();
+         end;
 
         // Если задача прерывается, то останавливаем процесс
         if (ACancelationToken.Wait(TmpProcessInfo.hProcess, INFINITE) = WAIT_OBJECT_0) then
@@ -93,6 +101,21 @@ begin
       finally
         CloseHandle(TmpProcessInfo.hThread);
         CloseHandle(TmpProcessInfo.hProcess);
+      end;
+
+      // Закрываем свою копию хендла записи в пайп сразу же, как только процесс точно завершён.
+      // Пока этот хендл открыт, фоновая задача чтения не получит EOF в ReadFile и будет висеть в нём бесконечно
+      if (TmpStdOutWrite <> INVALID_HANDLE_VALUE) then
+      begin
+        CloseHandle(TmpStdOutWrite);
+        TmpStdOutWrite := INVALID_HANDLE_VALUE;
+      end;
+
+      // Дожидаемся завершения фоновой задачи чтения перед тем, как отдать управление обратно
+      if Assigned(TmpReadTask) then
+      begin
+        TmpReadTask.WaitFor();
+        FreeAndNil(TmpReadTask);
       end;
     finally
       ATaskUpdater.SetResult(Format('ExitCode: %0:x', [TmpExitCode]));
