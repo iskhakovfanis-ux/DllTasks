@@ -9,14 +9,15 @@ uses
   System.Variants,
   System.Classes,
   System.Generics.Collections,
-  System.RTTI,
   Vcl.Graphics,
   Vcl.Controls,
   Vcl.Forms,
   Vcl.Dialogs,
   Vcl.StdCtrls,
   Vcl.ExtCtrls,
-  Interfaces.DllReader;
+  Interfaces.DllReader,
+
+  uParamValue;
 
 type
   TfmStartMethod = class(TForm)
@@ -35,9 +36,9 @@ type
     FParamControls: TList<TWinControl>;
   protected
     procedure AddParam(AParamInfo: TParamInfo);
-    function GetParams(): TArray<TValue>;
+    function GetParams(): TArray<IParamValue>;
   public
-    class function ShowMethodParams(const AMethod: IDLLMethod; out AParams: TArray<TValue>): TModalResult;
+    class function ShowMethodParams(const AMethod: IDLLMethod; out AParams: TArray<IParamValue>): TModalResult;
   end;
 
 implementation
@@ -62,21 +63,24 @@ var
 begin
   TmpPanel := TPanel.Create(sbParams);
   TmpPanel.Parent := sbParams;
+  TmpPanel.AutoSize := True;
+  TmpPanel.Align := alTop;
+  TmpPanel.Top := MaxInt;
 
   TmpCaption := TLabel.Create(TmpPanel);
   TmpCaption.Parent := TmpPanel;
   TmpCaption.Align := alTop;
   TmpCaption.AlignWithMargins := True;
-  TmpCaption.Margins.SetBounds(20, 15, 20, 5);
+  TmpCaption.Margins.SetBounds(20, 10, 20, 0);
   TmpCaption.AutoSize := True;
-  TmpCaption.Caption := Format('Названи параметра: %0:s', [AParamInfo.ParamName]);
+  TmpCaption.Caption := Format('Название параметра: %0:s', [AParamInfo.ParamName]);
 
   TmpCaption := TLabel.Create(TmpPanel);
   TmpCaption.Parent := TmpPanel;
   TmpCaption.Top := MaxInt;
   TmpCaption.Align := alTop;
   TmpCaption.AlignWithMargins := True;
-  TmpCaption.Margins.SetBounds(20, 15, 20, 5);
+  TmpCaption.Margins.SetBounds(20, 10, 20, 0);
   TmpCaption.AutoSize := True;
   TmpCaption.Caption := Format('Описание параметра: %0:s', [AParamInfo.Description]);
 
@@ -85,7 +89,7 @@ begin
   TmpCaption.Top := MaxInt;
   TmpCaption.Align := alTop;
   TmpCaption.AlignWithMargins := True;
-  TmpCaption.Margins.SetBounds(20, 15, 20, 5);
+  TmpCaption.Margins.SetBounds(20, 10, 20, 0);
   TmpCaption.AutoSize := True;
   TmpCaption.Caption := 'Значение параметра:';
 
@@ -114,13 +118,13 @@ begin
     TmpControl.Top := MaxInt;
     TmpControl.Align := alTop;
     TmpControl.AlignWithMargins := True;
-    TmpControl.Margins.SetBounds(20, 15, 20, 5);
+    TmpControl.Margins.SetBounds(20, 10, 20, 10);
   end;
 
   FParamControls.Add(TmpControl);
 end;
 
-function TfmStartMethod.GetParams(): TArray<TValue>;
+function TfmStartMethod.GetParams(): TArray<IParamValue>;
 var
   TmpParamId: Integer;
   TmpControl: TWinControl;
@@ -131,31 +135,36 @@ begin
   begin
     TmpControl := FParamControls[TmpParamId];
 
+    Result[TmpParamId] := TParamValue.Create();
+
     case FDLLMethod.Params[TmpParamId].ParamType of
       ptInteger:
-        Result[TmpParamId] := TValue.From(StrToInt((TmpControl as TEdit).Text));
+        Result[TmpParamId].WriteAsInt(StrToInt((TmpControl as TEdit).Text));
       ptString:
-        Result[TmpParamId] := TValue.From((TmpControl as TEdit).Text);
+        Result[TmpParamId].WriteAsString((TmpControl as TEdit).Text);
       ptStringList:
-        Result[TmpParamId] := TValue.From((TmpControl as TMemo).Lines.ToStringArray());
+        Result[TmpParamId].WriteAsStringList((TmpControl as TMemo).Lines.ToStringArray());
       ptBoolean:
-        Result[TmpParamId] := TValue.From((TmpControl as TCheckBox).Checked);
+        Result[TmpParamId].WriteAsBoolean((TmpControl as TCheckBox).Checked);
     end;
   end;
 end;
 
-class function TfmStartMethod.ShowMethodParams(const AMethod: IDLLMethod; out AParams: TArray<TValue>): TModalResult;
+class function TfmStartMethod.ShowMethodParams(const AMethod: IDLLMethod; out AParams: TArray<IParamValue>): TModalResult;
 var
   TmpForm: TfmStartMethod;
   TmpParamInfo: TParamInfo;
 begin
   TmpForm := TfmStartMethod.Create(nil);
   try
+    TmpForm.FDLLMethod := AMethod;
     TmpForm.lbMethodName.Caption := Format('Название метода: %0:s', [AMethod.DLLMethodName]);
     TmpForm.lbMethodDescr.Caption := Format('Описание метода: %0:s', [AMethod.Description]);
 
     for TmpParamInfo in AMethod.Params do
       TmpForm.AddParam(TmpParamInfo);
+
+    TmpForm.sbParams.Realign();
 
     Result := TmpForm.ShowModal();
 

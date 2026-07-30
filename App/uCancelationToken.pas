@@ -13,9 +13,9 @@ type
   private
     FCancelEvent: THandle;
   public
-    constructor Create(AThread: TThread);
-  public
+    constructor Create();
     destructor Destroy; override;
+  public
     procedure Cancel(); stdcall;
     function IsCancelationRequired(): Boolean; stdcall;
     function Wait(AWait: Cardinal): Cardinal; overload; stdcall;
@@ -26,7 +26,7 @@ type
 implementation
 
 
-constructor TCancelationToken.Create(AThread: TThread);
+constructor TCancelationToken.Create();
 begin
   inherited Create();
 

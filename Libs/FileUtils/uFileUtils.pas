@@ -7,40 +7,38 @@ uses
   System.StrUtils,
   System.Classes,
   System.Math,
-  System.RTTI,
   System.Generics.Collections,
-  System.RegularExpressions,
+  System.IOUtils,
   Interfaces.DllReader;
 
-procedure SearchFilesInner(ACancelationToken: ICancelationToken; ATaskUpdater: IDLLTaskUpdater;
+procedure SearchFilesInner(const ACancelationToken: ICancelationToken; const ATaskUpdater: IDLLTaskUpdater;
           const AMaskList: TArray<string>; const ASearchPath: string);
-procedure CountOccurrencesInFileInner(ACancelationToken: ICancelationToken; ATaskUpdater: IDLLTaskUpdater;
-          const AMaskList: TArray<string>; const AFileName: string);
+procedure CountOccurrencesInFileInner(const ACancelationToken: ICancelationToken; const ATaskUpdater: IDLLTaskUpdater;
+          const AMaskList: TArray<string>; const AFileName: string); stdcall;
 
-procedure SearchFiles(ACancelationToken: ICancelationToken; ATaskUpdater: IDLLTaskUpdater; const AParams: TArray<TValue>);
-procedure CountOccurrencesInFile(ACancelationToken: ICancelationToken; ATaskUpdater: IDLLTaskUpdater;
-          const AParams: TArray<TValue>);
+procedure SearchFiles(const ACancelationToken: ICancelationToken; const ATaskUpdater: IDLLTaskUpdater; const AParams: TArray<IParamValue>); stdcall;
+procedure CountOccurrencesInFile(const ACancelationToken: ICancelationToken; const ATaskUpdater: IDLLTaskUpdater;
+          const AParams: TArray<IParamValue>);
 
 implementation
 
-procedure SearchFiles(ACancelationToken: ICancelationToken; ATaskUpdater: IDLLTaskUpdater; const AParams: TArray<TValue>);
+procedure SearchFiles(const ACancelationToken: ICancelationToken; const ATaskUpdater: IDLLTaskUpdater; const AParams: TArray<IParamValue>);
 begin
-  SearchFilesInner(ACancelationToken, ATaskUpdater, AParams[0].AsType<TArray<string>>(), AParams[1].AsType<string>());
+  SearchFilesInner(ACancelationToken, ATaskUpdater, AParams[0].ReadAsStringList(), AParams[1].ReadAsString());
 end;
 
-procedure CountOccurrencesInFile(ACancelationToken: ICancelationToken; ATaskUpdater: IDLLTaskUpdater;
-          const AParams: TArray<TValue>);
+procedure CountOccurrencesInFile(const ACancelationToken: ICancelationToken; const ATaskUpdater: IDLLTaskUpdater;
+          const AParams: TArray<IParamValue>);
 begin
-  CountOccurrencesInFileInner(ACancelationToken, ATaskUpdater, AParams[0].AsType<TArray<string>>(), AParams[1].AsType<string>());
+  CountOccurrencesInFileInner(ACancelationToken, ATaskUpdater, AParams[0].ReadAsStringList(), AParams[1].ReadAsString());
 end;
 
-procedure SearchFilesInner(ACancelationToken: ICancelationToken; ATaskUpdater: IDLLTaskUpdater;
+procedure SearchFilesInner(const ACancelationToken: ICancelationToken; const ATaskUpdater: IDLLTaskUpdater;
           const AMaskList: TArray<string>; const ASearchPath: string);
 var
   TmpDirList: TQueue<string>;
   TmpFoundFiles: TStringList;
   TmpCurDir: string;
-  TmpRegEx: TArray<TRegEx>;
   TmpI: Integer;
   TmpSearchRec: TSearchRec;
   TmpResult: string;
@@ -48,10 +46,6 @@ begin
   TmpDirList := TQueue<string>.Create();
   TmpFoundFiles := TStringList.Create();
   try
-    SetLength(TmpRegEx, Length(AMaskList));
-    for TmpI := 0 to High(AMaskList) do
-      TmpRegEx[TmpI] := TRegEx.Create(AMaskList[TmpI], [roIgnoreCase, roCompiled]);
-
     try
       TmpDirList.Enqueue(ASearchPath);
 
@@ -85,14 +79,14 @@ begin
             // Иначе, если это файл
             else if (TmpSearchRec.Attr and faDirectory = 0) then
             begin
-              for TmpI := Low(TmpRegEx) to High(TmpRegEx) do
+              for TmpI := 0 to High(AMaskList) do
               begin
                 // Если операция прервана пользователем, то выходим
                 if ACancelationToken.IsCancelationRequired() then
                   Exit();
 
                 // Если имя файла удовлетворяет маске, то добавляем его в список файлов
-                if TmpRegEx[TmpI].IsMatch(TmpSearchRec.Name) then
+                if TPath.MatchesPattern(TmpSearchRec.Name, AMaskList[TmpI], False) then
                 begin
                   TmpFoundFiles.Add(TmpCurDir + TmpSearchRec.Name);
                   ATaskUpdater.AddLog(Format('Found file "%0:s" by mask "%1:s"', [TmpCurDir + TmpSearchRec.Name, AMaskList[TmpI]]));
@@ -108,7 +102,7 @@ begin
         end;
       end;
     finally
-      TmpFoundFiles.DelimitedText := #$D#$A#9;
+      TmpFoundFiles.LineBreak := #$D#$A#9;
 
       TmpResult := Format('Кол-во файлов, удовлетворяющие заданной маске: %0:d'#$D#$A'Список файлов:'#$D#$A'%1:s',
                           [TmpFoundFiles.Count, TmpFoundFiles.Text]);
@@ -120,7 +114,7 @@ begin
   end;
 end;
 
-procedure CountOccurrencesInFileInner(ACancelationToken: ICancelationToken; ATaskUpdater: IDLLTaskUpdater;
+procedure CountOccurrencesInFileInner(const ACancelationToken: ICancelationToken; const ATaskUpdater: IDLLTaskUpdater;
           const AMaskList: TArray<string>; const AFileName: string);
 var
   TmpFileStream: TFileStream;

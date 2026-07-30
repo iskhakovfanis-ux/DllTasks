@@ -6,10 +6,10 @@
         <Projects Include="App\DllTasks.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="Libs\FileUtils\FileUtils.dproj">
+        <Projects Include="Libs\ShellUtils\ShellUtils.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="Libs\ShellUtils\ShellUtils.dproj">
+        <Projects Include="Libs\FileUtils\FileUtils.dproj">
             <Dependencies/>
         </Projects>
     </ItemGroup>
@@ -29,15 +29,6 @@
     <Target Name="DllTasks:Make">
         <MSBuild Projects="App\DllTasks.dproj" Targets="Make"/>
     </Target>
-    <Target Name="FileUtils">
-        <MSBuild Projects="Libs\FileUtils\FileUtils.dproj"/>
-    </Target>
-    <Target Name="FileUtils:Clean">
-        <MSBuild Projects="Libs\FileUtils\FileUtils.dproj" Targets="Clean"/>
-    </Target>
-    <Target Name="FileUtils:Make">
-        <MSBuild Projects="Libs\FileUtils\FileUtils.dproj" Targets="Make"/>
-    </Target>
     <Target Name="ShellUtils">
         <MSBuild Projects="Libs\ShellUtils\ShellUtils.dproj"/>
     </Target>
@@ -47,14 +38,23 @@
     <Target Name="ShellUtils:Make">
         <MSBuild Projects="Libs\ShellUtils\ShellUtils.dproj" Targets="Make"/>
     </Target>
+    <Target Name="FileUtils">
+        <MSBuild Projects="Libs\FileUtils\FileUtils.dproj"/>
+    </Target>
+    <Target Name="FileUtils:Clean">
+        <MSBuild Projects="Libs\FileUtils\FileUtils.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="FileUtils:Make">
+        <MSBuild Projects="Libs\FileUtils\FileUtils.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="DllTasks;FileUtils;ShellUtils"/>
+        <CallTarget Targets="DllTasks;ShellUtils;FileUtils"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="DllTasks:Clean;FileUtils:Clean;ShellUtils:Clean"/>
+        <CallTarget Targets="DllTasks:Clean;ShellUtils:Clean;FileUtils:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="DllTasks:Make;FileUtils:Make;ShellUtils:Make"/>
+        <CallTarget Targets="DllTasks:Make;ShellUtils:Make;FileUtils:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

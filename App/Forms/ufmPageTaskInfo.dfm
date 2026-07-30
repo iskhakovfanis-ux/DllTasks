@@ -11,7 +11,6 @@ object fmPageTaskInfo: TfmPageTaskInfo
     Height = 622
     Align = alClient
     TabOrder = 0
-    ExplicitHeight = 670
     object lbParamList: TLabel
       AlignWithMargins = True
       Left = 20
@@ -24,8 +23,7 @@ object fmPageTaskInfo: TfmPageTaskInfo
       Margins.Bottom = 5
       Align = alTop
       Caption = #1057#1087#1080#1089#1086#1082' '#1087#1072#1088#1072#1084#1077#1090#1088#1086#1074' '#1079#1072#1087#1091#1089#1082#1072':'
-      ExplicitLeft = 35
-      ExplicitTop = -2
+      ExplicitWidth = 146
     end
     object lbLog: TLabel
       AlignWithMargins = True
@@ -39,8 +37,7 @@ object fmPageTaskInfo: TfmPageTaskInfo
       Margins.Bottom = 5
       Align = alTop
       Caption = #1051#1086#1075' '#1074#1099#1087#1086#1083#1085#1077#1085#1080#1103' '#1079#1072#1076#1072#1095#1080':'
-      ExplicitLeft = 30
-      ExplicitTop = 218
+      ExplicitWidth = 126
     end
     object lbResult: TLabel
       AlignWithMargins = True
@@ -53,9 +50,8 @@ object fmPageTaskInfo: TfmPageTaskInfo
       Margins.Right = 20
       Margins.Bottom = 5
       Align = alTop
-      Caption = #1051#1086#1075' '#1074#1099#1087#1086#1083#1085#1077#1085#1080#1103' '#1079#1072#1076#1072#1095#1080':'
-      ExplicitLeft = 10
-      ExplicitTop = 391
+      Caption = #1056#1077#1079#1091#1083#1100#1090#1072#1090' '#1074#1099#1087#1086#1083#1085#1077#1085#1080#1103' '#1079#1072#1076#1072#1095#1080':'
+      ExplicitWidth = 161
     end
     object lbCurState: TLabel
       AlignWithMargins = True
@@ -97,8 +93,6 @@ object fmPageTaskInfo: TfmPageTaskInfo
         end>
       TabOrder = 0
       ViewStyle = vsReport
-      ExplicitTop = 36
-      ExplicitWidth = 250
     end
     object mmLog: TMemo
       AlignWithMargins = True
@@ -113,7 +107,6 @@ object fmPageTaskInfo: TfmPageTaskInfo
       Align = alTop
       ScrollBars = ssVertical
       TabOrder = 1
-      ExplicitTop = 236
     end
     object mmResult: TMemo
       AlignWithMargins = True
@@ -128,8 +121,6 @@ object fmPageTaskInfo: TfmPageTaskInfo
       Align = alTop
       ScrollBars = ssVertical
       TabOrder = 2
-      ExplicitLeft = 35
-      ExplicitTop = 443
     end
   end
   object pnButtons: TPanel

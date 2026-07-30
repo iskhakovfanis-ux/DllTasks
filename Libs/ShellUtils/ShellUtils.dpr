@@ -23,8 +23,11 @@ procedure GetDllMethods(ADLLMethodsReader: IDLLMethodsController); stdcall;
 var
   TmpParams: TArray<TParamInfo>;
   TmpDLLName: array[0..MAX_PATH] of Char;
+  TmpDLLNameLen: Cardinal;
+  TmpDLLNameStr: string;
 begin
-  GetModuleFileName(HInstance, TmpDLLName, SizeOf(TmpDLLName));
+  TmpDLLNameLen := GetModuleFileName(HInstance, TmpDLLName, SizeOf(TmpDLLName));
+  SetString(TmpDLLNameStr, TmpDLLName, TmpDLLNameLen);
 
   // Добавление информации по задаче 1
   SetLength(TmpParams, 2);
@@ -33,12 +36,12 @@ begin
     ptStringList,
     'Маска имени файла, по которой будет выполняться поиск. Может содержать несколько масок'
   );
-  TmpParams[0] := TParamInfo.Create(
+  TmpParams[1] := TParamInfo.Create(
     'ASearchPath',
     ptString,
     'Путь к папке, в которой будет выполняться поиск'
   );
-  ADLLMethodsReader.AddDllMethod(string(@TmpDllName[0]), 'SearchFiles', TmpParams,
+  ADLLMethodsReader.AddDllMethod(TmpDLLNameStr, 'SearchFiles', TmpParams,
     'Задача по поиску файлов по указанной маске в указанном каталоге и его подкаталогах');
 end;
 

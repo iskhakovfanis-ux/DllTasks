@@ -6,18 +6,17 @@ uses
   Winapi.Windows,
   System.Classes,
   System.SysUtils,
-  System.RTTI,
   System.Threading,
   Interfaces.DllReader;
 
-procedure ExecuteCommandInner(ACancelationToken: ICancelationToken; ATaskUpdater: IDLLTaskUpdater;
+procedure ExecuteCommandInner(const ACancelationToken: ICancelationToken; const ATaskUpdater: IDLLTaskUpdater;
           const ACmdLine: string);
-procedure ExecuteCommand(ACancelationToken: ICancelationToken; ATaskUpdater: IDLLTaskUpdater;
-          const AParams: TArray<TValue>);
+procedure ExecuteCommand(const ACancelationToken: ICancelationToken; const ATaskUpdater: IDLLTaskUpdater;
+          const AParams: TArray<IParamValue>); stdcall;
 
 implementation
 
-procedure ExecuteCommandInner(ACancelationToken: ICancelationToken; ATaskUpdater: IDLLTaskUpdater;
+procedure ExecuteCommandInner(const ACancelationToken: ICancelationToken; const ATaskUpdater: IDLLTaskUpdater;
           const ACmdLine: string);
 var
   TmpStartupInfo: TStartupInfo;
@@ -106,10 +105,10 @@ begin
   end;
 end;
 
-procedure ExecuteCommand(ACancelationToken: ICancelationToken; ATaskUpdater: IDLLTaskUpdater;
-          const AParams: TArray<TValue>);
+procedure ExecuteCommand(const ACancelationToken: ICancelationToken; const ATaskUpdater: IDLLTaskUpdater;
+          const AParams: TArray<IParamValue>);
 begin
-  ExecuteCommandInner(ACancelationToken, ATaskUpdater, AParams[0].AsType<string>());
+  ExecuteCommandInner(ACancelationToken, ATaskUpdater, AParams[0].ReadAsString());
 end;
 
 end.

@@ -5,7 +5,6 @@ interface
 uses
   Winapi.Windows,
   System.SysUtils,
-  System.RTTI,
   System.Generics.Collections,
   Interfaces.DllReader,
 
@@ -15,23 +14,18 @@ uses
 type
   TDLLInfo = class(TObject)
   private
+    FMethodList: TList<IDLLMethod>;
     FDLLName: string;
-    FMethods: TList<IDLLMethod>;
-  private
-    function GetMethodCount(): Integer;
-    function GetMethodItem(AIndex: Integer): IDLLMethod;
   protected
     procedure AddMethod(const AMethodName, AMethodDescription: string; const AMethodParams: TArray<TParamInfo>);
   public
-    constructor Create(const ADllName: string);
+    constructor Create(const ADLLName: string);
     destructor Destroy(); override;
   public
     property DLLName: string
              read FDLLName;
-    property MethodCount: Integer
-             read GetMethodCount;
-    property MethodItem[AIndex: Integer]: IDLLMethod
-             read GetMethodItem;
+    property MethodList: TList<IDLLMethod>
+             read FMethodList;
   end;
 
   TDLLController = class(TObject)
@@ -41,7 +35,9 @@ type
     FOnChangeTaskProgress: TOnChangeTaskProgress;
     FOnChangeTaskState: TOnChangeTaskState;
     FTaskList: TList<IDLLTask>;
+  private
     function GetDLLItem(const ADLLName: string): TDLLInfo;
+    function GetDLLItems: TArray<TDLLInfo>;
   protected
     procedure DoChangeTaskLog(const ATask: IDLLTask);
     procedure DoChangeTaskProgress(const ATask: IDLLTask; AProgress: Integer);
@@ -61,10 +57,11 @@ type
               const ADescription: string);
     function CheckLibraryIsLoaded(const ADLLName: string): Boolean;
     function LoadLibrary(const ADLLName: string): Boolean;
-    function StartTask(const AMethod: IDLLMethod; const AMethodParams: TArray<TValue>): IDLLTask;
+    function StartTask(const AMethod: IDLLMethod; const AMethodParams: TArray<IParamValue>): IDLLTask;
   public
     property DLLItem[const ADLLName: string]: TDLLInfo
              read GetDLLItem;
+    property DLLItems: TArray<TDLLInfo> read GetDLLItems;
     property TaskList: TList<IDLLTask>
              read FTaskList;
   public
@@ -111,9 +108,28 @@ end;
 
 procedure TDLLMethodsController.AddDllMethod(const ADLLName, AMethodName: string; const AParams: TArray<TParamInfo>;
           const ADescription: string);
+var
+  TmpParams: TArray<TParamInfo>;
+  TmpI: Integer;
 begin
-  if Assigned(FInstance) then
-    FInstance.AddDllMethod(ADLLName, AMethodName, AParams, ADescription);
+  if (not Assigned(FInstance)) then
+    Exit();
+
+  SetLength(TmpParams, Length(AParams));
+  for TmpI := 0 to High(AParams) do
+  begin
+    // Копируем записи из памяти DLL в память приложения
+    TmpParams[TmpI] := TParamInfo.Create(
+      string(PChar(AParams[TmpI].ParamName)),
+      AParams[TmpI].ParamType,
+      string(PChar(AParams[TmpI].Description)));
+  end;
+
+  // Вызываем процедуру добавления метода с копированием строк из памяти DLL в память приложения
+  FInstance.AddDllMethod(string(PChar(ADLLName)),
+    string(PChar(AMethodName)),
+    TmpParams,
+    string(PChar(ADescription)));
 end;
 
 constructor TDLLController.Create;
@@ -121,11 +137,13 @@ begin
   inherited Create();
 
   FDLLInfoList := TObjectDictionary<string, TDLLInfo>.Create([doOwnsValues]);
+  FTaskList := TList<IDLLTask>.Create();
 end;
 
 destructor TDLLController.Destroy;
 begin
   FreeAndNil(FDLLInfoList);
+  FreeAndNil(FTaskList);
 
   inherited Destroy();
 end;
@@ -135,17 +153,17 @@ end;
 procedure TDLLController.AddDllMethod(const ADLLName, AMethodName: string; const AParams: TArray<TParamInfo>;
           const ADescription: string);
 var
-  TmpDllName: string;
-  TmpDllInfo: TDLLInfo;
+  TmpDLLName: string;
+  TmpDLLInfo: TDLLInfo;
 begin
-  TmpDllName := LowerCase(Trim(string(PChar(ADLLName))));
-  if (not FDLLInfoList.TryGetValue(TmpDllName, TmpDllInfo)) then
+  TmpDLLName := LowerCase(ADLLName);
+  if (not FDLLInfoList.TryGetValue(TmpDLLName, TmpDLLInfo)) then
   begin
-    TmpDllInfo := TDLLInfo.Create(ADLLName);
-    FDLLInfoList.Add(TmpDllName, TmpDllInfo);
+    TmpDLLInfo := TDLLInfo.Create(ADLLName);
+    FDLLInfoList.Add(TmpDLLName, TmpDLLInfo);
   end;
 
-  TmpDllInfo.AddMethod(AMethodName, ADescription, AParams);
+  TmpDLLInfo.AddMethod(AMethodName, ADescription, AParams);
 end;
 
 function TDLLController.CheckLibraryIsLoaded(const ADLLName: string): Boolean;
@@ -177,6 +195,11 @@ begin
     Result := nil;
 end;
 
+function TDLLController.GetDLLItems: TArray<TDLLInfo>;
+begin
+  Result := FDLLInfoList.Values.ToArray();
+end;
+
 function TDLLController.LoadLibrary(const ADLLName: string): Boolean;
 var
   TmpLibHandle: THandle;
@@ -202,7 +225,7 @@ begin
   end;
 end;
 
-function TDLLController.StartTask(const AMethod: IDLLMethod; const AMethodParams: TArray<TValue>): IDLLTask;
+function TDLLController.StartTask(const AMethod: IDLLMethod; const AMethodParams: TArray<IParamValue>): IDLLTask;
 var
   TmpDLLTask: TDLLTask;
 begin
@@ -212,34 +235,24 @@ begin
   FTaskList.Add(Result);
 end;
 
-constructor TDLLInfo.Create(const ADllName: string);
+constructor TDLLInfo.Create(const ADLLName: string);
 begin
   inherited Create();
 
-  FDLLName := ADllName;
-  FMethods := TList<IDLLMethod>.Create();
+  FDLLName := ADLLName;
+  FMethodList := TList<IDLLMethod>.Create();
 end;
 
 destructor TDLLInfo.Destroy();
 begin
-  FreeAndNil(FMethods);
+  FreeAndNil(FMethodList);
 
   inherited Destroy();
 end;
 
 procedure TDLLInfo.AddMethod(const AMethodName, AMethodDescription: string; const AMethodParams: TArray<TParamInfo>);
 begin
-  FMethods.Add(TDLLMethod.Create(FDLLName, AMethodName, AMethodDescription, AMethodParams));
-end;
-
-function TDLLInfo.GetMethodCount: Integer;
-begin
-  Result := FMethods.Count;
-end;
-
-function TDLLInfo.GetMethodItem(AIndex: Integer): IDLLMethod;
-begin
-  Result := FMethods[AIndex];
+  FMethodList.Add(TDLLMethod.Create(FDLLName, AMethodName, AMethodDescription, AMethodParams));
 end;
 
 end.

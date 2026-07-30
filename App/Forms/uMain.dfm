@@ -26,9 +26,6 @@ object Form1: TForm1
     TabOrder = 0
     object tsDLLMethods: TTabSheet
       Caption = #1057#1087#1080#1089#1086#1082' '#1076#1086#1089#1090#1091#1087#1085#1099#1093' '#1084#1077#1090#1086#1076#1086#1074
-      ExplicitLeft = 8
-      ExplicitTop = 28
-      ExplicitWidth = 512
       object pnDlls: TPanel
         Left = 0
         Top = 0
@@ -36,7 +33,6 @@ object Form1: TForm1
         Height = 552
         Align = alLeft
         TabOrder = 0
-        ExplicitHeight = 580
         object pnAddDLL: TPanel
           Left = 1
           Top = 501
@@ -44,7 +40,6 @@ object Form1: TForm1
           Height = 50
           Align = alBottom
           TabOrder = 0
-          ExplicitTop = 529
           object btnLoadDLL: TButton
             Left = 5
             Top = 15
@@ -70,12 +65,12 @@ object Form1: TForm1
               AutoSize = True
               Caption = 'Path'
             end>
+          OwnerData = True
+          RowSelect = True
           TabOrder = 1
           ViewStyle = vsReport
+          OnData = lvDLLListData
           OnSelectItem = lvDLLListSelectItem
-          ExplicitLeft = 0
-          ExplicitTop = 0
-          ExplicitHeight = 359
         end
       end
       object pnMethodList: TPanel
@@ -85,10 +80,6 @@ object Form1: TForm1
         Height = 552
         Align = alClient
         TabOrder = 1
-        ExplicitLeft = 455
-        ExplicitTop = 195
-        ExplicitWidth = 185
-        ExplicitHeight = 41
         object Panel1: TPanel
           Left = 1
           Top = 501
@@ -96,7 +87,6 @@ object Form1: TForm1
           Height = 50
           Align = alBottom
           TabOrder = 0
-          ExplicitWidth = 520
           object btnStartMethod: TButton
             Left = 15
             Top = 15
@@ -122,22 +112,22 @@ object Form1: TForm1
               Caption = 'Description'
               Width = 200
             end>
+          OwnerData = True
+          RowSelect = True
           TabOrder = 1
           ViewStyle = vsReport
+          OnData = lvMethodsData
           OnSelectItem = lvMethodsSelectItem
-          ExplicitLeft = 125
-          ExplicitTop = 205
-          ExplicitWidth = 250
-          ExplicitHeight = 150
         end
       end
     end
     object tsTaskList: TTabSheet
       Caption = #1057#1087#1080#1089#1086#1082' '#1079#1072#1076#1072#1095
       ImageIndex = 1
-      ExplicitLeft = 5
-      ExplicitTop = 27
-      ExplicitWidth = 281
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
+      ExplicitHeight = 0
       object lvTaskList: TListView
         Left = 0
         Top = 0
@@ -157,9 +147,12 @@ object Form1: TForm1
             Caption = 'Description'
             Width = 200
           end>
+        OwnerData = True
+        RowSelect = True
         TabOrder = 0
         ViewStyle = vsReport
-        ExplicitLeft = -2
+        OnData = lvTaskListData
+        OnSelectItem = lvTaskListSelectItem
       end
     end
   end
@@ -170,10 +163,6 @@ object Form1: TForm1
     Height = 580
     Align = alClient
     TabOrder = 1
-    ExplicitLeft = 955
-    ExplicitTop = 225
-    ExplicitWidth = 185
-    ExplicitHeight = 41
   end
   object odLoadLibrary: TOpenDialog
     Filter = 'Library|*.dll'

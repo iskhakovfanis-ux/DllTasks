@@ -7,9 +7,9 @@ uses
   System.Classes,
   System.SysUtils,
   System.SyncObjs,
-  System.RTTI,
   Interfaces.DllReader,
-  uDLLMethod;
+  uDLLMethod,
+  uCancelationToken;
 
 type
   TOnChangeTaskProgress = procedure (const ADLLTask: IDLLTask; AProgress: Integer) of object;
@@ -23,7 +23,7 @@ type
     FError: string;
     FLock: TCriticalSection;
     FMethodLog: string;
-    FMethodParams: TArray<TValue>;
+    FMethodParams: TArray<IParamValue>;
     FMethodResult: string;
     FOnChangeTaskLog: TOnChangeTaskLog;
     FOnChangeTaskProgress: TOnChangeTaskProgress;
@@ -35,7 +35,7 @@ type
   private
     function GetDllMethod(): IDLLMethod; stdcall;
     function GetMethodLog(): string; stdcall;
-    function GetMethodParams: TArray<TValue>; stdcall;
+    function GetMethodParams: TArray<IParamValue>; stdcall;
     function GetMethodResult(): string; stdcall;
     function GetProgress(): Integer; stdcall;
     function GetProgressText(): string; stdcall;
@@ -44,7 +44,7 @@ type
     procedure DoExecute(AThread: TThread);
     procedure InvokeMethod;
   public
-    constructor Create(const ADLLMethod: IDLLMethod; const ADLLMethodParams: TArray<TValue>; AOnChangeTaskProgress:
+    constructor Create(const ADLLMethod: IDLLMethod; const ADLLMethodParams: TArray<IParamValue>; AOnChangeTaskProgress:
         TOnChangeTaskProgress; AOnChangeTaskState: TOnChangeTaskState; AOnChangeTaskLog: TOnChangeTaskLog);
     destructor Destroy(); override;
   public
@@ -102,7 +102,7 @@ type
     /// <summary>
     ///   —писок параметров, с которыми был запущен метод
     /// </summary>
-    property MethodParams: TArray<TValue> read GetMethodParams;
+    property MethodParams: TArray<IParamValue> read GetMethodParams;
     /// <summary>
     ///   JSON результат выполнени€ задачи
     /// </summary>
@@ -136,7 +136,7 @@ type
 
 implementation
 
-constructor TDLLTask.Create(const ADLLMethod: IDLLMethod; const ADLLMethodParams: TArray<TValue>;
+constructor TDLLTask.Create(const ADLLMethod: IDLLMethod; const ADLLMethodParams: TArray<IParamValue>;
     AOnChangeTaskProgress: TOnChangeTaskProgress; AOnChangeTaskState: TOnChangeTaskState; AOnChangeTaskLog:
     TOnChangeTaskLog);
 begin
@@ -145,8 +145,10 @@ begin
   FLock := TCriticalSection.Create();
   FDllMethod := ADLLMethod;
   FMethodParams := ADLLMethodParams;
+  FCancelationToken := TCancelationToken.Create();
   FOnChangeTaskProgress := AOnChangeTaskProgress;
   FOnChangeTaskState := AOnChangeTaskState;
+  FOnChangeTaskLog := AOnChangeTaskLog;
 
   FThread := TDLLTaskThread.Create(Self);
 end;
@@ -184,6 +186,7 @@ begin
     on E: Exception do
     begin
       SetError(Format('Exception. %0:s: %1:s', [E.ClassName, E.Message]));
+      SetState(tsError);
     end;
   end;
 
@@ -206,7 +209,7 @@ begin
   FLock.Leave();
 end;
 
-function TDLLTask.GetMethodParams: TArray<TValue>;
+function TDLLTask.GetMethodParams: TArray<IParamValue>;
 begin
   Result := FMethodParams;
 end;
@@ -243,6 +246,7 @@ procedure TDLLTask.InvokeMethod();
 var
   TmpLibHandle: THandle;
   TmpProcAddr: Pointer;
+  TmpTaskUpdater: IDLLTaskUpdater;
 begin
   TmpLibHandle := LoadLibraryW(PWideChar(FDLLMethod.DLLName));
   try
@@ -250,7 +254,10 @@ begin
 
     // ≈сли есть метод в библиотеке дл€ вызова задачи, то запускаем задачу
     if Assigned(TmpProcAddr) then
-      TInvokeDLLMethod(TmpProcAddr)(FCancelationToken, Self, FMethodParams)
+    begin
+      TmpTaskUpdater := Self as IDLLTaskUpdater;
+      TInvokeDLLMethod(TmpProcAddr)(FCancelationToken, TmpTaskUpdater, FMethodParams)
+    end
     else
       raise Exception.CreateFmt('The Library hasn`t method %0:s', [FDllMethod.DLLMethodName]);
   finally
@@ -261,7 +268,7 @@ end;
 procedure TDLLTask.SetError(const AErrorMsg: string);
 begin
   FLock.Enter();
-  FError := AErrorMsg;
+  FError := string(PChar(AErrorMsg));
   AddLog(AErrorMsg);
   FLock.Leave();
 end;
@@ -277,7 +284,7 @@ begin
   if TmpChanged then
   begin
     FProgress := AProgress;
-    FProgressText := AProgressText;
+    FProgressText := string(PChar(AProgressText));
   end;
 
   FLock.Leave();
@@ -290,7 +297,7 @@ end;
 procedure TDLLTask.SetResult(const AResult: string);
 begin
   FLock.Enter();
-  FMethodResult := AResult;
+  FMethodResult := string(PChar(AResult));
   FLock.Leave();
 end;
 

@@ -53,40 +53,45 @@ var
   TmpParamId: Integer;
   TmpParamInfo: TParamInfo;
   TmpListItem: TListItem;
-  TmpParamValue: string;
+  //TmpLog: TStringList;
 begin
-  FDLLTask := ATask;
-
   pnButtons.Visible := ATask.State in [tsNone, tsWorking, tsInterrupting];
   btnStopTask.Enabled := ATask.State in [tsNone, tsWorking];
 
   lbCurState.Caption := Format('“екущее состо€ние задачи: %0:s', [CS_TASK_STATE[ATask.State]]);
 
-  lvParams.Items.Clear();
-
-  for TmpParamId := 0 to High(ATask.MethodParams) do
+  // —писок параметров мен€ем, только если произошло изменение выбранной задачи
+  if (ATask <> FDLLTask) then
   begin
-    TmpParamInfo := ATask.DllMethod.Params[TmpParamId];
-    TmpListItem := lvParams.Items.Add();
-    TmpListItem.Caption := TmpParamInfo.ParamName;
-    TmpListItem.SubItems.Add(CS_PARAM_TYPE_STR[TmpParamInfo.ParamType]);
+    lvParams.Items.Clear();
 
-    case TmpParamInfo.ParamType of
-      ptInteger:
-        TmpParamValue := IntToStr(ATask.MethodParams[TmpParamId].AsType<Integer>());
-      ptString:
-        TmpParamValue := ATask.MethodParams[TmpParamId].AsType<string>();
-      ptStringList:
-        TmpParamValue := string.Join(', ',  ATask.MethodParams[TmpParamId].AsType<TArray<string>>());
-      ptBoolean:
-        TmpParamValue := BoolToStr(ATask.MethodParams[TmpParamId].AsType<Boolean>(), True);
-      else
-        TmpParamValue := string.Empty;
+    for TmpParamId := 0 to High(ATask.MethodParams) do
+    begin
+      TmpParamInfo := ATask.DllMethod.Params[TmpParamId];
+      TmpListItem := lvParams.Items.Add();
+      TmpListItem.Caption := TmpParamInfo.ParamName;
+      TmpListItem.SubItems.Add(CS_PARAM_TYPE_STR[TmpParamInfo.ParamType]);
+      TmpListItem.SubItems.Add(ATask.MethodParams[TmpParamId].ToStringValue());
     end;
   end;
 
-  mmLog.Text := ATask.MethodLog;
+  //if (ATask <> FDLLTask) then
+    mmLog.Text := ATask.MethodLog;
+//  else if (mmLog.Text <> ATask.MethodLog) then
+//  begin
+//    TmpLog := TStringList.Create();
+//    try
+//      //  опируем только хвост лока
+//      TmpLog.Text := Copy(ATask.MethodLog, Length(mmLog.Text), MaxInt);
+//      mmLog.Lines.AddStrings(TmpLog);
+//    finally
+//      FreeAndNil(TmpLog);
+//    end;
+//  end;
+
   mmResult.Text := ATask.MethodResult;
+
+  FDLLTask := ATask;
 end;
 
 end.

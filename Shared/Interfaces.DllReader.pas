@@ -3,7 +3,6 @@ unit Interfaces.DllReader;
 interface
 
 uses
-  System.RTTI,
   System.Generics.Collections;
 
 type
@@ -72,8 +71,6 @@ const
   );
 
 type
-
-
   /// <summary>
   ///   Информация о параметре метода
   /// </summary>
@@ -86,6 +83,23 @@ type
     Description: string;
   public
     constructor Create(const AParamName: string; AParamType: TParamType; const ADescription: string);
+  end;
+
+  IParamValue = interface(IInterface)
+  ['{727AED96-527F-4F39-8153-A32AD54A3C15}']
+    function GetParamType: TParamType; stdcall;
+    function ReadAsBoolean: Boolean; stdcall;
+    function ReadAsInt: Integer; stdcall;
+    function ReadAsString: string; stdcall;
+    function ReadAsStringList: TArray<string>; stdcall;
+    function ReadValue: TArray<Byte>; stdcall;
+    function ToStringValue: string; stdcall;
+    procedure WriteAsBoolean(AValue: Boolean); stdcall;
+    procedure WriteAsInt(AValue: Integer); stdcall;
+    procedure WriteAsString(const AValue: string); stdcall;
+    procedure WriteAsStringList(const AValue: TArray<string>); stdcall;
+    procedure WriteValue(AParamType: TParamType; const AValue: TArray<Byte>); stdcall;
+    property ParamType: TParamType read GetParamType;
   end;
 
   /// <summary>
@@ -207,7 +221,7 @@ type
   ['{851B6452-54C5-4D65-BFFD-FB1CAB99DA19}']
     function GetDllMethod(): IDLLMethod; stdcall;
     function GetMethodLog(): string; stdcall;
-    function GetMethodParams: TArray<TValue>; stdcall;
+    function GetMethodParams: TArray<IParamValue>; stdcall;
     function GetMethodResult(): string; stdcall;
     function GetProgress(): Integer; stdcall;
     function GetProgressText(): string; stdcall;
@@ -231,7 +245,7 @@ type
     /// <summary>
     ///   Список параметров, с которыми был запущен метод
     /// </summary>
-    property MethodParams: TArray<TValue>
+    property MethodParams: TArray<IParamValue>
              read GetMethodParams;
     /// <summary>
     ///   JSON результат выполнения задачи
@@ -303,7 +317,9 @@ type
   /// </summary>
   /// <param name="AMethodParams"> Список параметров метода </param>
   /// <param name="ATaskUpdater"> Интерфейс для изменения состояния задачи </param>
-  TInvokeDLLMethod = procedure(ACancelationToken: ICancelationToken; ATaskUpdater: IDLLTaskUpdater; const AParams: TArray<TValue>); stdcall;
+  /// <param name="AParams"> Список параметров </param>
+  TInvokeDLLMethod = procedure(const ACancelationToken: ICancelationToken; const ATaskUpdater: IDLLTaskUpdater;
+                               const AParams: TArray<IParamValue>); stdcall;
 
   // Каждая библиотека должна реализовывать методы
   // procedure GetDllMethods(ADLLMethodsReader: IDLLMethodsController);
