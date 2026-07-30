@@ -17,10 +17,14 @@ type
   TOnChangeTaskLog = procedure (const ADLLTask: IDLLTask) of object;
 
   TDLLTask = class(TInterfacedObject, IDLLTask, IDLLTaskUpdater)
+  private const
+    // Не уведомлять UI о новых строках лога чаще, чем раз в этот интервал (мс).
+    CS_MIN_LOG_NOTIFY_INTERVAL_MS = 200;
   private
     FCancelationToken: ICancelationToken;
     FDllMethod: IDLLMethod;
     FError: string;
+    FLastLogNotifyTick: Cardinal;
     FLock: TCriticalSection;
     FMethodLog: string;
     FMethodParams: TArray<IParamValue>;
@@ -42,6 +46,7 @@ type
     function GetState(): TDLLTaskState; stdcall;
   protected
     procedure DoExecute(AThread: TThread);
+    procedure FlushLog();
     procedure InvokeMethod;
   public
     constructor Create(const ADLLMethod: IDLLMethod; const ADLLMethodParams: TArray<IParamValue>; AOnChangeTaskProgress:
@@ -165,12 +170,29 @@ begin
 end;
 
 procedure TDLLTask.AddLog(const ALogText: string);
+var
+  TmpNow: Cardinal;
+  TmpNotify: Boolean;
 begin
   FLock.Enter();
-  FMethodLog := Format('%0:s'#$D#$A'%1:s %2:s',
-                      [FMethodLog, FormatDateTime('dd.mm.yyyy hh:nn:ss.zzz', Now()), ALogText]);
-  FLock.Leave();
+  try
+    FMethodLog := Format('%0:s'#$D#$A'%1:s %2:s',
+                        [FMethodLog, FormatDateTime('dd.mm.yyyy hh:nn:ss.zzz', Now()), ALogText]);
 
+    TmpNow := GetTickCount();
+    TmpNotify := (FLastLogNotifyTick = 0) or (TmpNow - FLastLogNotifyTick >= CS_MIN_LOG_NOTIFY_INTERVAL_MS);
+    if TmpNotify then
+      FLastLogNotifyTick := TmpNow;
+  finally
+    FLock.Leave();
+  end;
+
+  if TmpNotify then
+    FlushLog();
+end;
+
+procedure TDLLTask.FlushLog();
+begin
   if Assigned(FOnChangeTaskLog) then
     FOnChangeTaskLog(Self);
 end;
@@ -195,6 +217,8 @@ begin
     SetState(tsInterrupted)
   else
     SetState(tsFinished);
+
+  FlushLog();
 end;
 
 function TDLLTask.GetDllMethod(): IDLLMethod;

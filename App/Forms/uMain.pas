@@ -150,7 +150,7 @@ end;
 procedure TForm1.DoChangeTaskLog(const ATask: IDLLTask);
 begin
   // Синхронизируем в главном потоке Vcl
-  TThread.Synchronize(nil,
+  TThread.Queue(nil,
   procedure
   begin
     if (FCurTask = ATask) then

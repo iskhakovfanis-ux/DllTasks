@@ -32,6 +32,7 @@ type
     procedure btnStopTaskClick(Sender: TObject);
   private
     FDLLTask: IDLLTask;
+    FLastLogLength: Integer;
     { Private declarations }
   public
     procedure ShowData(ATask: IDLLTask);
@@ -53,14 +54,15 @@ var
   TmpParamId: Integer;
   TmpParamInfo: TParamInfo;
   TmpListItem: TListItem;
-  TmpLog: TStringList;
+  TmpFullLog: string;
+  TmpDeltaLog: string;
 begin
   pnButtons.Visible := ATask.State in [tsNone, tsWorking, tsInterrupting];
   btnStopTask.Enabled := ATask.State in [tsNone, tsWorking];
 
   lbCurState.Caption := Format('“екущее состо€ние задачи: %0:s', [CS_TASK_STATE[ATask.State]]);
 
-  // —писок параметров мен€ем, только если произошло изменение выбранной задачи
+  // —писок параметров и лог полностью пересоздаЄм, только если сменилась выбранна€ задача
   if (ATask <> FDLLTask) then
   begin
     lvParams.Items.Clear();
@@ -73,20 +75,19 @@ begin
       TmpListItem.SubItems.Add(CS_PARAM_TYPE_STR[TmpParamInfo.ParamType]);
       TmpListItem.SubItems.Add(ATask.MethodParams[TmpParamId].ToStringValue());
     end;
+
+    mmLog.Clear();
+    FLastLogLength := 0;
   end;
 
-  if (ATask <> FDLLTask) then
-    mmLog.Text := ATask.MethodLog
-  else if (mmLog.Text <> ATask.MethodLog) then
+  TmpFullLog := ATask.MethodLog;
+  if (Length(TmpFullLog) > FLastLogLength) then
   begin
-    TmpLog := TStringList.Create();
-    try
-      //  опируем только хвост лока
-      TmpLog.Text := Copy(ATask.MethodLog, Length(mmLog.Text), MaxInt);
-      mmLog.Lines.AddStrings(TmpLog);
-    finally
-      FreeAndNil(TmpLog);
-    end;
+    TmpDeltaLog := Copy(TmpFullLog, FLastLogLength + 1, MaxInt);
+    FLastLogLength := Length(TmpFullLog);
+
+    SendMessage(mmLog.Handle, EM_SETSEL, mmLog.GetTextLen, mmLog.GetTextLen);
+    SendMessage(mmLog.Handle, EM_REPLACESEL, 0, LPARAM(PChar(TmpDeltaLog)));
   end;
 
   mmResult.Text := ATask.MethodResult;
