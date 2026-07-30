@@ -9,7 +9,8 @@ uses
   System.SyncObjs,
   Interfaces.DllReader,
   uDLLMethod,
-  uCancelationToken;
+  uCancelationToken,
+  uDLLLibraryManager;
 
 type
   TOnChangeTaskProgress = procedure (const ADLLTask: IDLLTask; AProgress: Integer) of object;
@@ -25,8 +26,9 @@ type
     FDllMethod: IDLLMethod;
     FError: string;
     FLastLogNotifyTick: Cardinal;
+    FLibraryManager: TDLLLibraryManager;
     FLock: TCriticalSection;
-    FMethodLog: string;
+    FMethodLog: TStringBuilder;
     FMethodParams: TArray<IParamValue>;
     FMethodResult: string;
     FOnChangeTaskLog: TOnChangeTaskLog;
@@ -50,6 +52,7 @@ type
     procedure InvokeMethod();
   public
     constructor Create(const ADLLMethod: IDLLMethod; const ADLLMethodParams: TArray<IParamValue>;
+                ALibraryManager: TDLLLibraryManager;
                 AOnChangeTaskProgress: TOnChangeTaskProgress; AOnChangeTaskState: TOnChangeTaskState;
                 AOnChangeTaskLog: TOnChangeTaskLog);
     destructor Destroy(); override;
@@ -145,6 +148,7 @@ type
 implementation
 
 constructor TDLLTask.Create(const ADLLMethod: IDLLMethod; const ADLLMethodParams: TArray<IParamValue>;
+            ALibraryManager: TDLLLibraryManager;
             AOnChangeTaskProgress: TOnChangeTaskProgress; AOnChangeTaskState: TOnChangeTaskState;
             AOnChangeTaskLog: TOnChangeTaskLog);
 begin
@@ -153,10 +157,12 @@ begin
   FLock := TCriticalSection.Create();
   FDllMethod := ADLLMethod;
   FMethodParams := ADLLMethodParams;
+  FLibraryManager := ALibraryManager;
   FCancelationToken := TCancelationToken.Create();
   FOnChangeTaskProgress := AOnChangeTaskProgress;
   FOnChangeTaskState := AOnChangeTaskState;
   FOnChangeTaskLog := AOnChangeTaskLog;
+  FMethodLog := TStringBuilder.Create();
 
   FThread := TDLLTaskThread.Create(Self);
 end;
@@ -168,6 +174,7 @@ begin
 
   FreeAndNil(FThread);
   FreeAndNil(FLock);
+  FreeAndNil(FMethodLog);
 
   inherited Destroy();
 end;
@@ -179,8 +186,7 @@ var
 begin
   FLock.Enter();
   try
-    FMethodLog := Format('%0:s'#$D#$A'%1:s %2:s',
-                        [FMethodLog, FormatDateTime('dd.mm.yyyy hh:nn:ss.zzz', Now()), ALogText]);
+    FMethodLog.AppendFormat(#$D#$A'%0:s %1:s', [FormatDateTime('dd.mm.yyyy hh:nn:ss.zzz', Now()), ALogText]);
 
     TmpNow := GetTickCount();
     TmpNotify := (FLastLogNotifyTick = 0) or (TmpNow - FLastLogNotifyTick >= CS_MIN_LOG_NOTIFY_INTERVAL_MS);
@@ -209,9 +215,7 @@ begin
     InvokeMethod();
   except
     on E: Exception do
-    begin
       SetError(Format('Exception. %0:s: %1:s', [E.ClassName, E.Message]));
-    end;
   end;
 
   // Устанавливаем состояние завершения
@@ -231,7 +235,7 @@ end;
 function TDLLTask.GetMethodLog(): string;
 begin
   FLock.Enter();
-  Result := FMethodLog;
+  Result := FMethodLog.ToString();
   FLock.Leave();
 end;
 
@@ -274,11 +278,14 @@ var
   TmpProcAddr: Pointer;
   TmpTaskUpdater: IDLLTaskUpdater;
 begin
-  TmpLibHandle := LoadLibraryW(PWideChar(FDLLMethod.DLLName));
+  TmpLibHandle := FLibraryManager.Acquire(FDLLMethod.DLLName);
+  if (TmpLibHandle = 0) then
+    raise Exception.CreateFmt('Не удалось загрузить библиотеку %0:s', [FDLLMethod.DLLName]);
+
   try
     TmpProcAddr := GetProcAddress(TmpLibHandle, PWideChar(FDllMethod.DLLMethodName));
 
-    // Если есть метод в библиотеке для вызова задачи, то запускаем задачу
+    // Если в библиотеке нет искомого метода, то сообщаем об ошибке
     if Assigned(TmpProcAddr) then
     begin
       TmpTaskUpdater := Self as IDLLTaskUpdater;
@@ -287,17 +294,18 @@ begin
     else
       raise Exception.CreateFmt('The Library hasn`t method %0:s', [FDllMethod.DLLMethodName]);
   finally
-    FreeLibrary(TmpLibHandle);
+    FLibraryManager.Release(FDLLMethod.DLLName);
   end;
 end;
 
 procedure TDLLTask.SetError(const AErrorMsg: string);
 begin
   FLock.Enter();
-  FError := string(PChar(AErrorMsg));
+  FError := AErrorMsg;
+  FLock.Leave();
+
   AddLog(AErrorMsg);
   SetState(tsError);
-  FLock.Leave();
 end;
 
 procedure TDLLTask.SetProgress(AProgress: Integer; const AProgressText: string);

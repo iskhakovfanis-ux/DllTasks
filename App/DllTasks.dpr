@@ -9,6 +9,7 @@ uses
   uDLLController in 'uDLLController.pas',
   uCancelationToken in 'uCancelationToken.pas',
   uDLLTask in 'uDLLTask.pas',
+  uDLLLibraryManager in 'uDLLLibraryManager.pas',
   ufmMethodParams in 'Forms\ufmMethodParams.pas' {fmStartMethod},
   ufmPageMethodInfo in 'Forms\ufmPageMethodInfo.pas' {fmPageMethodInfo: TFrame},
   ufmPageTaskInfo in 'Forms\ufmPageTaskInfo.pas' {fmPageTaskInfo: TFrame},

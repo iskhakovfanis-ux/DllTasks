@@ -110,6 +110,7 @@
         <DCCReference Include="uDLLController.pas"/>
         <DCCReference Include="uCancelationToken.pas"/>
         <DCCReference Include="uDLLTask.pas"/>
+        <DCCReference Include="uDLLLibraryManager.pas"/>
         <DCCReference Include="Forms\ufmMethodParams.pas">
             <Form>fmStartMethod</Form>
         </DCCReference>

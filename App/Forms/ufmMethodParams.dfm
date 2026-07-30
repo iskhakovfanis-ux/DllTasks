@@ -28,7 +28,7 @@ object fmStartMethod: TfmStartMethod
       AlignWithMargins = True
       Left = 21
       Top = 21
-      Width = 913
+      Width = 93
       Height = 13
       Margins.Left = 20
       Margins.Top = 20
@@ -36,13 +36,12 @@ object fmStartMethod: TfmStartMethod
       Margins.Bottom = 5
       Align = alTop
       Caption = #1053#1072#1079#1074#1072#1085#1080#1077' '#1084#1077#1090#1086#1076#1072':'
-      ExplicitWidth = 93
     end
     object lbMethodDescr: TLabel
       AlignWithMargins = True
       Left = 21
       Top = 49
-      Width = 913
+      Width = 93
       Height = 13
       Margins.Left = 20
       Margins.Top = 10
@@ -51,13 +50,12 @@ object fmStartMethod: TfmStartMethod
       Align = alTop
       Caption = #1054#1087#1080#1089#1072#1085#1080#1077' '#1084#1077#1090#1086#1076#1072':'
       WordWrap = True
-      ExplicitWidth = 93
     end
     object lbParamList: TLabel
       AlignWithMargins = True
       Left = 21
       Top = 77
-      Width = 923
+      Width = 104
       Height = 13
       Margins.Left = 20
       Margins.Top = 10
@@ -65,7 +63,6 @@ object fmStartMethod: TfmStartMethod
       Margins.Bottom = 5
       Align = alTop
       Caption = #1057#1087#1080#1089#1086#1082' '#1087#1072#1088#1072#1084#1077#1090#1088#1086#1074':'
-      ExplicitWidth = 104
     end
     object sbParams: TScrollBox
       Left = 1
@@ -96,8 +93,8 @@ object fmStartMethod: TfmStartMethod
       Anchors = [akTop, akRight]
       Caption = #1047#1072#1087#1091#1089#1090#1080#1090#1100
       Default = True
-      ModalResult = 1
       TabOrder = 0
+      OnClick = btnStartClick
     end
     object btnCancel: TButton
       Left = 722

@@ -31,12 +31,19 @@ type
     lbParamList: TLabel;
     procedure FormDestroy(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure btnStartClick(Sender: TObject);
   private
     FDLLMethod: IDLLMethod;
     FParamControls: TList<TWinControl>;
+    // Валидированные параметры сохраняются здесь после успешного нажатия "Запустить"
+    FValidatedParams: TArray<IParamValue>;
   protected
     procedure AddParam(AParamInfo: TParamInfo);
-    function GetParams(): TArray<IParamValue>;
+    /// <summary>
+    ///   Выполняется попытка чтения параметров. Если параметры некорректные, то выводится текст ошибки, которая
+    ///   в дальнейшем показывается пользователю (форма при этом не закрывается)
+    /// </summary>
+    function TryGetParams(out AParams: TArray<IParamValue>; out AErrorMsg: string): Boolean;
   public
     class function ShowMethodParams(const AMethod: IDLLMethod; out AParams: TArray<IParamValue>): TModalResult;
   end;
@@ -124,29 +131,80 @@ begin
   FParamControls.Add(TmpControl);
 end;
 
-function TfmStartMethod.GetParams(): TArray<IParamValue>;
+function TfmStartMethod.TryGetParams(out AParams: TArray<IParamValue>; out AErrorMsg: string): Boolean;
 var
   TmpParamId: Integer;
   TmpControl: TWinControl;
+  TmpParamInfo: TParamInfo;
 begin
-  SetLength(Result, Length(FDLLMethod.Params));
+  Result := True;
+  AErrorMsg := string.Empty;
+  SetLength(AParams, Length(FDLLMethod.Params));
 
   for TmpParamId := 0 to High(FDLLMethod.Params) do
   begin
+    TmpParamInfo := FDLLMethod.Params[TmpParamId];
     TmpControl := FParamControls[TmpParamId];
 
-    Result[TmpParamId] := TParamValue.Create();
+    AParams[TmpParamId] := TParamValue.Create();
 
-    case FDLLMethod.Params[TmpParamId].ParamType of
-      ptInteger:
-        Result[TmpParamId].WriteAsInt(StrToInt((TmpControl as TEdit).Text));
-      ptString:
-        Result[TmpParamId].WriteAsString((TmpControl as TEdit).Text);
-      ptStringList:
-        Result[TmpParamId].WriteAsStringList((TmpControl as TMemo).Lines.ToStringArray());
-      ptBoolean:
-        Result[TmpParamId].WriteAsBoolean((TmpControl as TCheckBox).Checked);
+    try
+      case TmpParamInfo.ParamType of
+        ptInteger:
+        begin
+          // Проверяем на пустую строку, чтобы исключить ошибку конвертации в число
+          if (Trim((TmpControl as TEdit).Text).IsEmpty()) then
+            raise Exception.CreateFmt('Параметр "%0:s" не заполнен: введите целое число', [TmpParamInfo.ParamName]);
+
+          AParams[TmpParamId].WriteAsInt(StrToInt((TmpControl as TEdit).Text));
+        end;
+        ptString:
+        begin
+          if (Trim((TmpControl as TEdit).Text).IsEmpty()) then
+            raise Exception.CreateFmt('Параметр "%0:s" не заполнен: введите значение', [TmpParamInfo.ParamName]);
+
+          AParams[TmpParamId].WriteAsString((TmpControl as TEdit).Text);
+        end;
+        ptStringList:
+        begin
+          if ((TmpControl as TMemo).Lines.Count = 0) then
+            raise Exception.CreateFmt('Параметр "%0:s" не заполнен: введите хотя бы одну строку', [TmpParamInfo.ParamName]);
+
+          AParams[TmpParamId].WriteAsStringList((TmpControl as TMemo).Lines.ToStringArray());
+        end;
+        ptBoolean:
+          AParams[TmpParamId].WriteAsBoolean((TmpControl as TCheckBox).Checked);
+        else
+          raise Exception.CreateFmt('Параметр "%0:s" имеет неподдерживаемый тип: %1:s',
+                [TmpParamInfo.ParamName, CS_PARAM_TYPE_STR[TmpParamInfo.ParamType]]);
+      end;
+    except
+      on E: Exception do
+      begin
+        // Не даём необработанному исключению вылететь из модального окна - вместо этого
+        // сообщаем пользователю, какой конкретно параметр некорректен, и не закрываем форму.
+        Result := False;
+        AErrorMsg := E.Message;
+        Exit();
+      end;
     end;
+  end;
+end;
+
+procedure TfmStartMethod.btnStartClick(Sender: TObject);
+var
+  TmpParams: TArray<IParamValue>;
+  TmpErrorMsg: string;
+begin
+  if TryGetParams(TmpParams, TmpErrorMsg) then
+  begin
+    FValidatedParams := TmpParams;
+    ModalResult := mrOk;
+  end
+  else
+  begin
+    ShowMessage(TmpErrorMsg);
+    ModalResult := mrNone;
   end;
 end;
 
@@ -169,7 +227,7 @@ begin
     Result := TmpForm.ShowModal();
 
     if (Result = mrOk) then
-      AParams := TmpForm.GetParams();
+      AParams := TmpForm.FValidatedParams;
   finally
     FreeAndNil(TmpForm);
   end;

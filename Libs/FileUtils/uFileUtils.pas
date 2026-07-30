@@ -129,8 +129,8 @@ var
   TmpCurOffset: Integer;
   TmpOccurencesByMaskList: TObjectList<TList<Int64>>;
   TmpOccurenceCount: Integer;
-  TmpOccurenceListStr: string;
-  TmpResult: string;
+  TmpOccurenceListStr: TStringBuilder;
+  TmpResult: TStringBuilder;
   TmpJ: Integer;
 begin
   SetLength(TmpBuf, High(Word));
@@ -150,8 +150,9 @@ begin
     try
       TmpOccurencesByMaskList.Count := Length(AMaskList);
       repeat
-        // Читаем порцию данных из файла
-        TmpReadSize := TmpFileStream.Read64(TmpBuf, TmpOffset, Length(TmpBuf));
+        // Читаем порцию данных из файла.
+        TmpFileStream.Position := TmpOffset;
+        TmpReadSize := TmpFileStream.Read(TmpBuf[0], Length(TmpBuf));
         if (TmpReadSize <= 0) then
           Break;
 
@@ -198,25 +199,29 @@ begin
         Inc(TmpOffset, TmpReadSize - TmpCrossOffset);
       until TmpReadSize < Length(TmpBuf);
     finally
-      TmpResult := string.Empty;
+      TmpOccurenceListStr := TStringBuilder.Create();
+      TmpResult := TStringBuilder.Create();
+      try
+        for TmpI := 0 to TmpOccurencesByMaskList.Count - 1 do
+        begin
+          if (not Assigned(TmpOccurencesByMaskList[TmpI])) then
+            TmpOccurenceCount := 0
+          else
+            TmpOccurenceCount := TmpOccurencesByMaskList[TmpI].Count;
 
-      for TmpI := 0 to TmpOccurencesByMaskList.Count - 1 do
-      begin
-        if (not Assigned(TmpOccurencesByMaskList[TmpI])) then
-          TmpOccurenceCount := 0
-        else
-          TmpOccurenceCount := TmpOccurencesByMaskList[TmpI].Count;
+          TmpOccurenceListStr.Clear();
+          for TmpJ := 0 to TmpOccurenceCount - 1 do
+            TmpOccurenceListStr.AppendFormat(#9#9'%0:d'#$D#$A, [TmpOccurencesByMaskList[TmpI][TmpJ]]);
 
-        TmpOccurenceListStr := string.Empty;
-        for TmpJ := 0 to TmpOccurenceCount - 1 do
-          TmpOccurenceListStr := Format('%0:s'#9#9'%1:d'#$D#$A, [TmpOccurenceListStr, TmpOccurencesByMaskList[TmpI][TmpJ]]);
+          TmpResult.AppendFormat('%0:s:'#$D#$A#9'Кол-во вхождений подсроки в файл: %1:d'#$D#$A#9'Список позиций найденных вхождений: '#$D#$A'%2:s'#$D#$A,
+                              [AMaskList[TmpI], TmpOccurenceCount, TmpOccurenceListStr.ToString()]);
+        end;
 
-        TmpResult := Format('%0:s%1:s:'#$D#$A#9'Кол-во вхождений подсроки в файл: %2:d'#$D#$A#9'Список позиций найденных вхождений: '#$D#$A'%3:s'#$D#$A,
-                            [TmpResult, AMaskList[TmpI], TmpOccurenceCount, TmpOccurenceListStr]);
+        // Устанавливаем результат независимо от ситуации
+        ATaskUpdater.SetResult(TmpResult.ToString());
+      finally
+        FreeAndNil(TmpOccurenceListStr);
       end;
-
-      // Устанавливаем результат независимо от ситуации
-      ATaskUpdater.SetResult(TmpResult);
     end;
   finally
     FreeAndNil(TmpFileStream);

@@ -9,7 +9,8 @@ uses
   Interfaces.DllReader,
 
   uDLLMethod,
-  uDLLTask;
+  uDLLTask,
+  uDLLLibraryManager;
 
 type
   TDLLInfo = class(TObject)
@@ -31,6 +32,7 @@ type
   TDLLController = class(TObject)
   private
     FDLLInfoList: TObjectDictionary<string, TDLLInfo>;
+    FLibraryManager: TDLLLibraryManager;
     FOnChangeTaskLog: TOnChangeTaskLog;
     FOnChangeTaskProgress: TOnChangeTaskProgress;
     FOnChangeTaskState: TOnChangeTaskState;
@@ -38,6 +40,7 @@ type
   private
     function GetDLLItem(const ADLLName: string): TDLLInfo;
     function GetDLLItems(): TArray<TDLLInfo>;
+    function NormalizeName(const ADLLName: string): string;
   protected
     procedure DoChangeTaskLog(const ATask: IDLLTask);
     procedure DoChangeTaskProgress(const ATask: IDLLTask; AProgress: Integer);
@@ -126,12 +129,14 @@ begin
 
   FDLLInfoList := TObjectDictionary<string, TDLLInfo>.Create([doOwnsValues]);
   FTaskList := TList<IDLLTask>.Create();
+  FLibraryManager := TDLLLibraryManager.Create();
 end;
 
 destructor TDLLController.Destroy();
 begin
   FreeAndNil(FDLLInfoList);
   FreeAndNil(FTaskList);
+  FreeAndNil(FLibraryManager);
 
   inherited Destroy();
 end;
@@ -142,7 +147,7 @@ var
   TmpDLLName: string;
   TmpDLLInfo: TDLLInfo;
 begin
-  TmpDLLName := LowerCase(ADLLName);
+  TmpDLLName := NormalizeName(ADLLName);
   if (not FDLLInfoList.TryGetValue(TmpDLLName, TmpDLLInfo)) then
   begin
     TmpDLLInfo := TDLLInfo.Create(ADLLName);
@@ -154,7 +159,7 @@ end;
 
 function TDLLController.CheckLibraryIsLoaded(const ADLLName: string): Boolean;
 begin
-  Result := FDLLInfoList.ContainsKey(LowerCase(Trim(ADLLName)));
+  Result := FDLLInfoList.ContainsKey(NormalizeName(ADLLName));
 end;
 
 procedure TDLLController.DoChangeTaskLog(const ATask: IDLLTask);
@@ -177,7 +182,7 @@ end;
 
 function TDLLController.GetDLLItem(const ADLLName: string): TDLLInfo;
 begin
-  if (not FDLLInfoList.TryGetValue(LowerCase(Trim(ADLLName)), Result)) then
+  if (not FDLLInfoList.TryGetValue(NormalizeName(ADLLName), Result)) then
     Result := nil;
 end;
 
@@ -195,11 +200,14 @@ begin
   if CheckLibraryIsLoaded(ADLLName) then
     Exit(False);
 
-  TmpLibHandle := LoadLibraryW(PWideChar(ADLLName));
+  TmpLibHandle := FLibraryManager.Acquire(ADLLName);
+  if (TmpLibHandle = 0) then
+    Exit(False);
+
   try
     TmpProcAddr := GetProcAddress(TmpLibHandle, PWideChar(CS_GET_DLL_METHODS));
 
-    // ≈сли есть метод в библиотеке дл€ вызова задачи, то запускаем задачу
+    // ≈сли есть метод в библиотеке дл€ чтени€ списка задач, то запускаем задачу
     if Assigned(TmpProcAddr) then
       TDLLInfoReadMethod(TmpProcAddr)(TDLLMethodsController.Create(Self))
     else
@@ -207,15 +215,21 @@ begin
 
     Result := True;
   finally
-    FreeLibrary(TmpLibHandle);
+    FLibraryManager.Release(ADLLName);
   end;
+end;
+
+function TDLLController.NormalizeName(const ADLLName: string): string;
+begin
+  Result := ExpandFileName(Trim(ADLLName)).ToLower();
 end;
 
 function TDLLController.StartTask(const AMethod: IDLLMethod; const AMethodParams: TArray<IParamValue>): IDLLTask;
 var
   TmpDLLTask: TDLLTask;
 begin
-  TmpDLLTask := TDLLTask.Create(AMethod, AMethodParams, DoChangeTaskProgress, DoChangeTaskState, DoChangeTaskLog);
+  TmpDLLTask := TDLLTask.Create(AMethod, AMethodParams, FLibraryManager, DoChangeTaskProgress, DoChangeTaskState,
+                DoChangeTaskLog);
   Result := TmpDLLTask;
   TmpDLLTask.Start();
   FTaskList.Add(Result);
