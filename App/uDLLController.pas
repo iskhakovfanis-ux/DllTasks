@@ -133,7 +133,13 @@ begin
 end;
 
 destructor TDLLController.Destroy();
+var
+  TmpTask: IDLLTask;
 begin
+  // Если остались незавершенные задачи, то останавливаем их
+  for TmpTask in FTaskList do
+    TmpTask.Stop();
+
   FreeAndNil(FDLLInfoList);
   FreeAndNil(FTaskList);
   FreeAndNil(FLibraryManager);

@@ -79,11 +79,11 @@ implementation
 
 procedure TForm1.FormDestroy(Sender: TObject);
 begin
+  FreeAndNil(FDLLController);
   FreeAndNil(FDllList);
   FreeAndNil(FTaskList);
   FreeAndNil(FMethodList);
   FreeAndNil(FCurDetails);
-  FreeAndNil(FDLLController);
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);

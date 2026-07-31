@@ -170,7 +170,14 @@ end;
 destructor TDLLTask.Destroy();
 begin
   if (not FThread.Finished) then
+  begin
     FCancelationToken.Cancel();
+
+    // Ждем завершения потока безопасным способом (чтобы не было зависания 
+    // при логировании или добавлении результата)
+    while (not FThread.Finished) do
+      Sleep(10);
+  end;
 
   FreeAndNil(FThread);
   FreeAndNil(FLock);
